@@ -50,7 +50,7 @@ export default function SettingsPage() {
     // Apply changes
     useEffect(() => {
         const root = document.documentElement;
-        if (theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             root.classList.add('dark');
         } else {
             root.classList.remove('dark');
