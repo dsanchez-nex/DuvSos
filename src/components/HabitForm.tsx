@@ -43,7 +43,7 @@ export default function HabitForm({ onSubmit, onCancel, initialData }: HabitForm
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="title" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
           Título del hábito *
         </label>
         <input
@@ -51,28 +51,28 @@ export default function HabitForm({ onSubmit, onCancel, initialData }: HabitForm
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           placeholder="Ej: Ejercicio diario"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="description" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
           Descripción (opcional)
         </label>
         <textarea
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
           rows={3}
           placeholder="Ej: 30 minutos de ejercicio"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Color</label>
         <div className="flex flex-wrap gap-2">
           {colors.map((c) => (
             <button
@@ -80,7 +80,7 @@ export default function HabitForm({ onSubmit, onCancel, initialData }: HabitForm
               type="button"
               onClick={() => setColor(c.value)}
               className={`w-8 h-8 rounded-full transition-all ${color === c.value
-                  ? 'ring-2 ring-offset-2 ring-gray-400 scale-110'
+                  ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-offset-slate-800 scale-110'
                   : 'hover:scale-105'
                 }`}
               style={{ backgroundColor: c.value }}
@@ -93,7 +93,7 @@ export default function HabitForm({ onSubmit, onCancel, initialData }: HabitForm
       <div className="flex gap-2 pt-2">
         <button
           type="submit"
-          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           {initialData ? 'Actualizar' : 'Crear Hábito'}
         </button>
@@ -101,7 +101,7 @@ export default function HabitForm({ onSubmit, onCancel, initialData }: HabitForm
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+            className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium"
           >
             Cancelar
           </button>

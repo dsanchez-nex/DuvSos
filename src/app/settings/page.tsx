@@ -3,30 +3,25 @@
 import React, { useState, useEffect } from 'react';
 import SettingCard from '@/components/SettingCard';
 import AppLayout from '@/components/AppLayout';
-
-const ACCENT_COLORS = [
-    { name: 'Blue', color: '#3b82f6', class: 'bg-blue-500' },
-    { name: 'Purple', color: '#a855f7', class: 'bg-purple-500' },
-    { name: 'Indigo', color: '#6366f1', class: 'bg-indigo-500' },
-    { name: 'Rose', color: '#f43f5e', class: 'bg-rose-500' },
-    { name: 'Amber', color: '#f59e0b', class: 'bg-amber-500' },
-    { name: 'Cyan', color: '#06b6d4', class: 'bg-cyan-500' },
-    { name: 'Slate', color: '#475569', class: 'bg-slate-600' },
-];
+import Toast from '@/components/Toast';
 
 export default function SettingsPage() {
-    const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
-    const [accentColor, setAccentColor] = useState('#3b82f6');
+    const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('app-theme');
+            if (saved && ['light', 'dark', 'system'].includes(saved)) {
+                return saved as 'light' | 'dark' | 'system';
+            }
+        }
+        return 'system';
+    });
     const [cardLimit, setCardLimit] = useState(4);
     const [isDirty, setIsDirty] = useState(false);
     const [user, setUser] = React.useState<any>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-    // Initial load from API (includes theme from database)
     useEffect(() => {
-        const savedColor = localStorage.getItem('app-accent-color');
         const savedLimit = localStorage.getItem('dashboard-card-limit');
-
-        if (savedColor) setAccentColor(savedColor);
         if (savedLimit) setCardLimit(parseInt(savedLimit));
 
         fetch('/api/auth/me')
@@ -34,37 +29,39 @@ export default function SettingsPage() {
             .then(data => {
                 if (data?.user) {
                     setUser(data.user);
-                    // Use theme from database, default to system
                     const userTheme = data.user.theme || 'system';
                     if (['light', 'dark', 'system'].includes(userTheme)) {
                         setTheme(userTheme as 'light' | 'dark' | 'system');
                     }
                 } else {
-                    console.warn('Session invalid or user not found. Redirecting to login to refresh token.');
                     window.location.href = '/login';
                 }
             })
             .catch(err => console.error('Failed to fetch user', err));
     }, []);
 
-    // Apply changes
-    useEffect(() => {
+    const applyTheme = (t: 'light' | 'dark' | 'system') => {
         const root = document.documentElement;
-        if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
-        root.style.setProperty('--color-primary', accentColor);
-    }, [theme, accentColor]);
+        let isDark: boolean;
+        if (t === 'dark') isDark = true;
+        else if (t === 'light') isDark = false;
+        else isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        if (isDark) root.classList.add('dark');
+        else root.classList.remove('dark');
+    };
+
+    const changeTheme = (newTheme: 'light' | 'dark' | 'system') => {
+        setTheme(newTheme);
+        applyTheme(newTheme);
+        setIsDirty(true);
+    };
 
     const handleSave = async () => {
         try {
             localStorage.setItem('app-theme', theme);
-            localStorage.setItem('app-accent-color', accentColor);
             localStorage.setItem('dashboard-card-limit', cardLimit.toString());
 
-            // Save user profile and theme to database
             if (user) {
                 const response = await fetch('/api/auth/me', {
                     method: 'PATCH',
@@ -84,10 +81,10 @@ export default function SettingsPage() {
             }
 
             setIsDirty(false);
-            alert('Settings saved successfully!');
+            setToast({ message: 'Settings saved successfully!', type: 'success' });
         } catch (error: any) {
             console.error('Save failed', error);
-            alert(error.message || 'Failed to save settings');
+            setToast({ message: error.message || 'Failed to save settings', type: 'error' });
         }
     };
 
@@ -95,20 +92,17 @@ export default function SettingsPage() {
         window.location.reload();
     };
 
-    const changeTheme = (newTheme: 'light' | 'dark' | 'system') => {
-        setTheme(newTheme);
-        setIsDirty(true);
-    };
-
-    const changeAccentColor = (newColor: string) => {
-        setAccentColor(newColor);
-        setIsDirty(true);
-    };
-
     return (
         <AppLayout>
             <main className="flex-1">
-                {/* Header */}
+                {toast && (
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                )}
+
                 <header className="p-6 lg:px-10 flex justify-between items-center bg-transparent">
                     <div>
                         <h1 className="text-2xl font-bold">Settings</h1>
@@ -118,7 +112,7 @@ export default function SettingsPage() {
 
                 <div className="flex-1 overflow-y-auto px-6 lg:px-10 pb-32 custom-scrollbar">
                     <div className="max-w-4xl space-y-8 mt-4">
-                        {/* Account Profile Section */}
+                        {/* Account Profile */}
                         <SettingCard>
                             <div className="flex items-center gap-2 mb-6">
                                 <span className="material-symbols-outlined text-primary">person</span>
@@ -127,7 +121,7 @@ export default function SettingsPage() {
                             <div className="flex flex-col md:flex-row gap-8 items-start">
                                 <div className="relative group">
                                     <img
-                                        alt="Large Avatar"
+                                        alt="Avatar"
                                         className="w-24 h-24 rounded-full object-cover ring-4 ring-primary/20"
                                         src={user?.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=random`}
                                     />
@@ -176,7 +170,7 @@ export default function SettingsPage() {
                             </div>
                         </SettingCard>
 
-                        {/* Dashboard Config Section */}
+                        {/* Dashboard Config */}
                         <SettingCard>
                             <div className="flex items-center gap-2 mb-6">
                                 <span className="material-symbols-outlined text-primary">dashboard_customize</span>
@@ -203,10 +197,10 @@ export default function SettingsPage() {
                             </div>
                         </SettingCard>
 
-                        {/* Notification Preferences Section */}
+                        {/* Notification Preferences */}
                         <SettingCard>
                             <div className="flex items-center gap-2 mb-6">
-                                <span className="material-icons text-primary">notifications</span>
+                                <span className="material-symbols-outlined text-primary">notifications</span>
                                 <h2 className="text-lg font-semibold">Notification Preferences</h2>
                             </div>
                             <div className="space-y-4">
@@ -222,88 +216,42 @@ export default function SettingsPage() {
                                         </div>
                                         <label className="relative inline-flex items-center cursor-pointer">
                                             <input type="checkbox" className="sr-only peer" defaultChecked={i < 2} />
-                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary rounded-full"></div>
                                         </label>
                                     </div>
                                 ))}
                             </div>
                         </SettingCard>
 
-                        {/* Theme & Appearance Section */}
+                        {/* Theme & Appearance */}
                         <SettingCard>
                             <div className="flex items-center gap-2 mb-6">
-                                <span className="material-icons text-primary">palette</span>
+                                <span className="material-symbols-outlined text-primary">palette</span>
                                 <h2 className="text-lg font-semibold">Theme &amp; Appearance</h2>
                             </div>
-                            <div className="space-y-8">
-                                {/* Mode Selector */}
-                                <div className="space-y-4">
-                                    <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Display Mode</label>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        {(['light', 'dark', 'system'] as const).map((m) => (
-                                            <button
-                                                key={m}
-                                                onClick={() => changeTheme(m)}
-                                                className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl transition-all ${theme === m ? 'border-primary bg-primary/5' : 'border-primary/10 hover:border-primary/30'}`}
-                                            >
-                                                <span className={`material-icons ${theme === m ? 'text-primary' : 'text-slate-400'}`}>
-                                                    {m === 'light' ? 'light_mode' : m === 'dark' ? 'dark_mode' : 'settings_brightness'}
-                                                </span>
-                                                <span className="text-sm font-medium capitalize">{m}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Accent Color Gallery */}
-                                <div className="space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Accent Color</label>
-                                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                                            {ACCENT_COLORS.find(c => c.color === accentColor)?.name || 'Custom'}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-4">
-                                        {ACCENT_COLORS.map((color) => (
-                                            <button
-                                                key={color.name}
-                                                onClick={() => changeAccentColor(color.color)}
-                                                className={`w-12 h-12 rounded-full ${color.class} transition-transform hover:scale-110 flex items-center justify-center ${accentColor === color.color ? 'ring-4 ring-primary/20 scale-110' : ''}`}
-                                            >
-                                                {accentColor === color.color && (
-                                                    <span className="material-icons text-white text-base">check</span>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Preview Area */}
-                                <div className="p-4 bg-background-light dark:bg-background-dark rounded-xl border border-dashed border-primary/30">
-                                    <p className="text-xs text-slate-400 uppercase tracking-widest font-semibold mb-3">Live Preview</p>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white">
-                                            <span className="material-icons">water_drop</span>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Habit Preview</h4>
-                                            <div className="flex gap-1 mt-1">
-                                                <div className="w-4 h-1 bg-primary rounded-full"></div>
-                                                <div className="w-4 h-1 bg-primary rounded-full"></div>
-                                                <div className="w-4 h-1 bg-primary rounded-full"></div>
-                                                <div className="w-4 h-1 bg-primary/20 rounded-full"></div>
-                                                <div className="w-4 h-1 bg-primary/20 rounded-full"></div>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div className="space-y-4">
+                                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Display Mode</label>
+                                <div className="grid grid-cols-3 gap-4">
+                                    {(['light', 'dark', 'system'] as const).map((m) => (
+                                        <button
+                                            key={m}
+                                            onClick={() => changeTheme(m)}
+                                            className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl transition-all ${theme === m ? 'border-primary bg-primary/5' : 'border-primary/10 hover:border-primary/30'}`}
+                                        >
+                                            <span className={`material-symbols-outlined ${theme === m ? 'text-primary' : 'text-slate-400'}`}>
+                                                {m === 'light' ? 'light_mode' : m === 'dark' ? 'dark_mode' : 'settings_brightness'}
+                                            </span>
+                                            <span className="text-sm font-medium capitalize">{m}</span>
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         </SettingCard>
 
-                        {/* Dangerous Zone */}
+                        {/* Danger Zone */}
                         <SettingCard>
                             <div className="flex items-center gap-2 mb-4 text-red-500">
-                                <span className="material-icons">report_problem</span>
+                                <span className="material-symbols-outlined">report_problem</span>
                                 <h2 className="text-lg font-semibold">Danger Zone</h2>
                             </div>
                             <div className="flex items-center justify-between gap-4">
@@ -329,9 +277,9 @@ export default function SettingsPage() {
                         </button>
                         <button
                             onClick={handleSave}
-                            className="px-8 py-2 bg-primary text-white hover:bg-opacity-90 rounded-lg font-semibold shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
+                            className="px-8 py-2 bg-primary text-white hover:bg-primary/90 rounded-lg font-semibold shadow-lg shadow-primary/20 transition-all flex items-center gap-2"
                         >
-                            <span className="material-icons text-sm">save</span>
+                            <span className="material-symbols-outlined text-sm">save</span>
                             Save Changes
                         </button>
                     </div>

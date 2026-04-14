@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-
 import { headers } from 'next/headers'
 
 export async function DELETE(
@@ -12,10 +11,7 @@ export async function DELETE(
     const userIdHeader = headersList.get('x-user-id')
 
     if (!userIdHeader) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const userId = parseInt(userIdHeader, 10)
@@ -23,38 +19,20 @@ export async function DELETE(
     const id = parseInt(idParams, 10)
 
     if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid ID' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
     }
 
-    const existingTodo = await prisma.todo.findFirst({
-      where: {
-        id,
-        userId,
-      },
+    const result = await prisma.todo.deleteMany({
+      where: { id, userId },
     })
 
-    if (!existingTodo) {
-      return NextResponse.json(
-        { error: 'Todo not found' },
-        { status: 404 }
-      )
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Todo not found' }, { status: 404 })
     }
-
-    await prisma.todo.delete({
-      where: {
-        id,
-      },
-    })
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting todo:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete todo' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to delete todo' }, { status: 500 })
   }
 }

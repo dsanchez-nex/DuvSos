@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import TodoItem from './TodoItem'
 
 interface Todo {
@@ -17,7 +17,7 @@ export default function TodoList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [newTodoTitle, setNewTodoTitle] = useState('')
-  const [isAdding, setIsAdding] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const fetchTodos = useCallback(async () => {
     try {
@@ -37,6 +37,20 @@ export default function TodoList() {
     fetchTodos()
   }, [fetchTodos])
 
+  // Keyboard shortcut: "n" to focus input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = (e.target as HTMLElement).tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const handleCreateTodo = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newTodoTitle.trim()) return
@@ -51,10 +65,8 @@ export default function TodoList() {
       const newTodo = await response.json()
       setTodos([...todos, newTodo])
       setNewTodoTitle('')
-      setIsAdding(false)
     } catch (err) {
       console.error(err)
-      alert('Error creating todo')
     }
   }
 
@@ -75,20 +87,16 @@ export default function TodoList() {
       )
     } catch (err) {
       console.error(err)
-      alert('Error updating todo')
     }
   }
 
   const handleDelete = async (id: number) => {
     try {
-      const response = await fetch(`/api/todos/${id}`, {
-        method: 'DELETE',
-      })
+      const response = await fetch(`/api/todos/${id}`, { method: 'DELETE' })
       if (!response.ok) throw new Error('Failed to delete todo')
       setTodos(todos.filter((t) => t.id !== id))
     } catch (err) {
       console.error(err)
-      alert('Error deleting todo')
     }
   }
 
@@ -104,7 +112,6 @@ export default function TodoList() {
       setTodos(todos.map((t) => (t.id === id ? updatedTodo : t)))
     } catch (err) {
       console.error(err)
-      alert('Error updating todo')
     }
   }
 
@@ -114,7 +121,7 @@ export default function TodoList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -123,10 +130,7 @@ export default function TodoList() {
     return (
       <div className="text-center py-12">
         <p className="text-red-500">{error}</p>
-        <button
-          onClick={fetchTodos}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
+        <button onClick={fetchTodos} className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">
           Retry
         </button>
       </div>
@@ -135,91 +139,52 @@ export default function TodoList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">My Todos</h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {todos.length === 0
-              ? 'No todos yet'
-              : `${uncheckedTodos.length} remaining · ${checkedTodos.length} completed`}
-          </p>
-        </div>
-        <button
-          onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          {isAdding ? (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              <span>Cancel</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>New Todo</span>
-            </>
-          )}
-        </button>
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">My Todos</h2>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
+          {todos.length === 0
+            ? 'No todos yet'
+            : `${uncheckedTodos.length} remaining · ${checkedTodos.length} completed`}
+        </p>
       </div>
 
-      {isAdding && (
-        <form onSubmit={handleCreateTodo} className="flex gap-2">
-          <input
-            type="text"
-            value={newTodoTitle}
-            onChange={(e) => setNewTodoTitle(e.target.value)}
-            placeholder="What needs to be done?"
-            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            autoFocus
-          />
-          <button
-            type="submit"
-            disabled={!newTodoTitle.trim()}
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Add
-          </button>
-        </form>
-      )}
+      {/* Always-visible input */}
+      <form onSubmit={handleCreateTodo} className="flex gap-2">
+        <input
+          ref={inputRef}
+          type="text"
+          value={newTodoTitle}
+          onChange={(e) => setNewTodoTitle(e.target.value)}
+          placeholder="Add a new todo... (press N to focus)"
+          className="flex-1 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-slate-400"
+        />
+        <button
+          type="submit"
+          disabled={!newTodoTitle.trim()}
+          className="px-6 py-3 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Add
+        </button>
+      </form>
 
-      {todos.length === 0 && !isAdding ? (
-        <div className="text-center py-16 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-gray-300 dark:border-slate-700">
-          <svg className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-          <p className="text-gray-500 dark:text-gray-400 text-lg">No todos yet</p>
-          <p className="text-gray-400 dark:text-gray-500 mt-1">Click "New Todo" to get started</p>
+      {todos.length === 0 ? (
+        <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+          <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 mb-4 block">checklist</span>
+          <p className="text-slate-500 dark:text-slate-400 text-lg">No todos yet</p>
+          <p className="text-slate-400 dark:text-slate-500 mt-1">Type above and press Enter to add one</p>
         </div>
       ) : (
         <div className="space-y-2">
           {uncheckedTodos.map((todo) => (
-            <TodoItem
-              key={todo.id}
-              todo={todo}
-              onToggle={handleToggle}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-            />
+            <TodoItem key={todo.id} todo={todo} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleEdit} />
           ))}
           {checkedTodos.length > 0 && (
             <>
               {uncheckedTodos.length > 0 && (
-                <div className="py-2 text-sm text-slate-400 dark:text-slate-500">
-                  Completed
-                </div>
+                <div className="py-2 text-sm text-slate-400 dark:text-slate-500">Completed</div>
               )}
               {checkedTodos.map((todo) => (
-                <TodoItem
-                  key={todo.id}
-                  todo={todo}
-                  onToggle={handleToggle}
-                  onDelete={handleDelete}
-                  onEdit={handleEdit}
-                />
+                <TodoItem key={todo.id} todo={todo} onToggle={handleToggle} onDelete={handleDelete} onEdit={handleEdit} />
               ))}
             </>
           )}
