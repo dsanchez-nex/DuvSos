@@ -73,6 +73,7 @@ export async function getCurrentUser() {
                 name: true,
                 image: true,
                 tagline: true,
+                theme: true,
             },
         })
         if (!user) console.warn('getCurrentUser: User not found in DB for id:', userId)

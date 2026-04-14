@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import SettingCard from '@/components/SettingCard';
-import Sidebar from '@/components/Sidebar';
+import AppLayout from '@/components/AppLayout';
 
 const ACCENT_COLORS = [
-    { name: 'Primary Green', color: '#37ec13', class: 'bg-[#37ec13]' },
     { name: 'Blue', color: '#3b82f6', class: 'bg-blue-500' },
     { name: 'Purple', color: '#a855f7', class: 'bg-purple-500' },
     { name: 'Indigo', color: '#6366f1', class: 'bg-indigo-500' },
@@ -16,19 +15,17 @@ const ACCENT_COLORS = [
 ];
 
 export default function SettingsPage() {
-    const [theme, setTheme] = useState<'light' | 'dark' | 'auto'>('auto');
-    const [accentColor, setAccentColor] = useState('#37ec13');
+    const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+    const [accentColor, setAccentColor] = useState('#3b82f6');
     const [cardLimit, setCardLimit] = useState(4);
     const [isDirty, setIsDirty] = useState(false);
     const [user, setUser] = React.useState<any>(null);
 
-    // Initial load from localStorage
+    // Initial load from API (includes theme from database)
     useEffect(() => {
-        const savedTheme = localStorage.getItem('app-theme') as any;
         const savedColor = localStorage.getItem('app-accent-color');
         const savedLimit = localStorage.getItem('dashboard-card-limit');
 
-        if (savedTheme) setTheme(savedTheme);
         if (savedColor) setAccentColor(savedColor);
         if (savedLimit) setCardLimit(parseInt(savedLimit));
 
@@ -37,6 +34,11 @@ export default function SettingsPage() {
             .then(data => {
                 if (data?.user) {
                     setUser(data.user);
+                    // Use theme from database, default to system
+                    const userTheme = data.user.theme || 'system';
+                    if (['light', 'dark', 'system'].includes(userTheme)) {
+                        setTheme(userTheme as 'light' | 'dark' | 'system');
+                    }
                 } else {
                     console.warn('Session invalid or user not found. Redirecting to login to refresh token.');
                     window.location.href = '/login';
@@ -62,7 +64,7 @@ export default function SettingsPage() {
             localStorage.setItem('app-accent-color', accentColor);
             localStorage.setItem('dashboard-card-limit', cardLimit.toString());
 
-            // Save user profile to database
+            // Save user profile and theme to database
             if (user) {
                 const response = await fetch('/api/auth/me', {
                     method: 'PATCH',
@@ -71,6 +73,7 @@ export default function SettingsPage() {
                         name: user.name,
                         email: user.email,
                         tagline: user.tagline,
+                        theme: theme,
                     }),
                 });
 
@@ -92,7 +95,7 @@ export default function SettingsPage() {
         window.location.reload();
     };
 
-    const changeTheme = (newTheme: 'light' | 'dark' | 'auto') => {
+    const changeTheme = (newTheme: 'light' | 'dark' | 'system') => {
         setTheme(newTheme);
         setIsDirty(true);
     };
@@ -103,10 +106,8 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="flex min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
-            <Sidebar />
-
-            <main className="flex-1 ml-20 lg:ml-64 p-4 lg:p-8">
+        <AppLayout>
+            <main className="flex-1">
                 {/* Header */}
                 <header className="p-6 lg:px-10 flex justify-between items-center bg-transparent">
                     <div>
@@ -239,7 +240,7 @@ export default function SettingsPage() {
                                 <div className="space-y-4">
                                     <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Display Mode</label>
                                     <div className="grid grid-cols-3 gap-4">
-                                        {(['light', 'dark', 'auto'] as const).map((m) => (
+                                        {(['light', 'dark', 'system'] as const).map((m) => (
                                             <button
                                                 key={m}
                                                 onClick={() => changeTheme(m)}
@@ -265,7 +266,7 @@ export default function SettingsPage() {
                                     <div className="flex flex-wrap gap-4">
                                         {ACCENT_COLORS.map((color) => (
                                             <button
-                                                key={color.color}
+                                                key={color.name}
                                                 onClick={() => changeAccentColor(color.color)}
                                                 className={`w-12 h-12 rounded-full ${color.class} transition-transform hover:scale-110 flex items-center justify-center ${accentColor === color.color ? 'ring-4 ring-primary/20 scale-110' : ''}`}
                                             >
@@ -336,6 +337,6 @@ export default function SettingsPage() {
                     </div>
                 </footer>
             </main>
-        </div>
+        </AppLayout>
     );
 }

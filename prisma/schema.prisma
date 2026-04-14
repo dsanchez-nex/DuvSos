@@ -16,9 +16,11 @@ model User {
   name      String?
   image     String?
   tagline   String?  @default("Productivity Enthusiast")
+  theme     String   @default("system")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  habits    Habit[]
+  habits   Habit[]
+  todos    Todo[]
 }
 
 model Habit {
@@ -43,4 +45,18 @@ model Completion {
 
   @@unique([habitId, date])
   @@index([habitId])
+}
+
+model Todo {
+  id         Int      @id @default(autoincrement())
+  title      String
+  completed  Boolean  @default(false)
+  position   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, completed, position])
 }

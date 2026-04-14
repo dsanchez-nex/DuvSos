@@ -12,7 +12,7 @@
   --font-mono: var(--font-geist-mono);
 
   /* Custom colors from design */
-  --color-primary: #37ec13;
+  --color-primary: #3b82f6;
   --color-background-light: #f6f8f6;
   --color-background-dark: #132210;
 }
@@ -41,12 +41,12 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #37ec1333;
+  background: #3b82f633;
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #37ec1366;
+  background: #3b82f666;
 }
 
 /* Material Symbols Adjustments */

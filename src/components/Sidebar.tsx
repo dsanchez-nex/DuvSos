@@ -51,10 +51,10 @@ export default function Sidebar() {
                     <span className="material-symbols-outlined">dashboard</span>
                     <span className="font-medium hidden lg:block">Dashboard</span>
                 </Link>
-                <a href="#" className="flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-primary/5 hover:text-primary rounded-xl transition-all group">
+                <Link href="/todos" className={getLinkClass('/todos')}>
                     <span className="material-symbols-outlined">check_circle</span>
                     <span className="font-medium hidden lg:block">To-Do List</span>
-                </a>
+                </Link>
                 <a href="#" className="flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-primary/5 hover:text-primary rounded-xl transition-all group">
                     <span className="material-symbols-outlined">payments</span>
                     <span className="font-medium hidden lg:block">Finances</span>
