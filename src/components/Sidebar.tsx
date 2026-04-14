@@ -15,7 +15,9 @@ export default function Sidebar() {
                 if (res.ok) return res.json();
                 return null;
             })
-            .then(data => setUser(data.user))
+            .then(data => {
+                if (data?.user) setUser(data.user);
+            })
             .catch(err => console.error('Failed to fetch user', err));
     }, []);
 
@@ -55,14 +57,18 @@ export default function Sidebar() {
                     <span className="material-symbols-outlined">check_circle</span>
                     <span className="font-medium hidden lg:block">To-Do List</span>
                 </Link>
-                <a href="#" className="flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-primary/5 hover:text-primary rounded-xl transition-all group">
+                <Link href="/checklists" className={getLinkClass('/checklists')}>
+                    <span className="material-symbols-outlined">fact_check</span>
+                    <span className="font-medium hidden lg:block">Checklists</span>
+                </Link>
+                <Link href="/finances" className={getLinkClass('/finances')}>
                     <span className="material-symbols-outlined">payments</span>
                     <span className="font-medium hidden lg:block">Finances</span>
-                </a>
-                <a href="#" className="flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-primary/5 hover:text-primary rounded-xl transition-all group">
+                </Link>
+                <Link href="/reminders" className={getLinkClass('/reminders')}>
                     <span className="material-symbols-outlined">notifications_active</span>
                     <span className="font-medium hidden lg:block">Reminders</span>
-                </a>
+                </Link>
                 <Link href="/habits" className={getLinkClass('/habits')}>
                     <span className="material-symbols-outlined">routine</span>
                     <span className="font-medium hidden lg:block">Habits</span>
@@ -73,10 +79,10 @@ export default function Sidebar() {
                         <span className="material-symbols-outlined">settings</span>
                         <span className="font-medium hidden lg:block">Settings</span>
                     </Link>
-                    <a href="#" className="flex items-center gap-4 px-4 py-3 text-slate-500 hover:bg-primary/5 hover:text-primary rounded-xl transition-all group">
+                    <Link href="/support" className={getLinkClass('/support')}>
                         <span className="material-symbols-outlined">help_outline</span>
                         <span className="font-medium hidden lg:block">Support</span>
-                    </a>
+                    </Link>
                 </div>
             </nav>
 
