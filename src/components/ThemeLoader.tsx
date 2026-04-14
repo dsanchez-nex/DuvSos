@@ -10,12 +10,28 @@ export default function ThemeLoader({ children }: { children: React.ReactNode })
       try {
         const res = await fetch('/api/auth/me');
         const data = await res.json();
-        
+
         const userTheme = data.user?.theme || 'system';
-        
-        // Store in localStorage for ThemeHandler to use
-        if (userTheme && ['light', 'dark', 'system'].includes(userTheme)) {
+
+        if (['light', 'dark', 'system'].includes(userTheme)) {
           localStorage.setItem('app-theme', userTheme);
+
+          // Apply theme immediately so ThemeHandler doesn't flash
+          const root = document.documentElement;
+          let isDark: boolean;
+          if (userTheme === 'dark') {
+            isDark = true;
+          } else if (userTheme === 'light') {
+            isDark = false;
+          } else {
+            isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          }
+
+          if (isDark) {
+            root.classList.add('dark');
+          } else {
+            root.classList.remove('dark');
+          }
         }
       } catch (error) {
         console.error('Failed to load theme:', error);
