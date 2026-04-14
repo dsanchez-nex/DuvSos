@@ -79,3 +79,42 @@ fix(ui): fix dark mode and styling across multiple components
 - Replace hardcoded bg-blue-600 with bg-primary token
 - Remove unused ThemeProvider component
 ```
+
+---
+
+## Pull Requests
+
+### Title
+
+Use the branch name as the PR title: `fix/fix-generales`
+
+### Description
+
+Use this template:
+
+```markdown
+## Summary
+
+Brief description of what this PR does and why.
+
+## Changes
+
+### <type>: <area>
+- Change 1
+- Change 2
+
+### <type>: <area>
+- Change 1
+- Change 2
+
+## Notes
+
+Any context, caveats, or follow-up items.
+```
+
+### Rules
+
+- Group changes by commit/area, not by file.
+- Each group header matches its commit type and scope.
+- Use bullet points, keep them concise.
+- Add a Notes section only if there are caveats or follow-ups.
