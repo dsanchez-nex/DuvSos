@@ -124,7 +124,7 @@ export default function HabitList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
@@ -135,7 +135,7 @@ export default function HabitList() {
         <p className="text-red-500">{error}</p>
         <button
           onClick={fetchHabits}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
         >
           Reintentar
         </button>
@@ -147,8 +147,8 @@ export default function HabitList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Mis Hábitos</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Mis Hábitos</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
             {habits.length === 0
               ? 'No tienes hábitos registrados'
               : `${habits.length} hábito${habits.length !== 1 ? 's' : ''} · ${totalCompletionsToday} completado${totalCompletionsToday !== 1 ? 's' : ''} hoy`}
@@ -156,7 +156,7 @@ export default function HabitList() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           {showForm ? (
             <>
@@ -177,19 +177,19 @@ export default function HabitList() {
       </div>
 
       {showForm && (
-        <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Crear Nuevo Hábito</h3>
+        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Crear Nuevo Hábito</h3>
           <HabitForm onSubmit={handleCreateHabit} onCancel={() => setShowForm(false)} />
         </div>
       )}
 
       {habits.length === 0 ? (
-        <div className="text-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-          <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+          <svg className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
-          <p className="text-gray-500 text-lg">Aún no tienes hábitos</p>
-          <p className="text-gray-400 mt-1">Haz clic en &quot;Nuevo Hábito&quot; para comenzar</p>
+          <p className="text-slate-500 dark:text-slate-400 text-lg">Aún no tienes hábitos</p>
+          <p className="text-slate-400 dark:text-slate-500 mt-1">Haz clic en &quot;Nuevo Hábito&quot; para comenzar</p>
         </div>
       ) : (
         <div className="grid gap-4">

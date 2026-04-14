@@ -28,7 +28,7 @@ export default function HabitCard({
 
   if (isEditing) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-6 border-l-4" style={{ borderLeftColor: habit.color }}>
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-l-4" style={{ borderLeftColor: habit.color }}>
         <HabitForm
           initialData={habit}
           onSubmit={(data) => {
@@ -42,18 +42,18 @@ export default function HabitCard({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 border-l-4 transition-all hover:shadow-lg" style={{ borderLeftColor: habit.color }}>
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-l-4 transition-all hover:shadow-lg" style={{ borderLeftColor: habit.color }}>
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-800">{habit.title}</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{habit.title}</h3>
           {habit.description && (
-            <p className="text-sm text-gray-500 mt-1">{habit.description}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{habit.description}</p>
           )}
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setIsEditing(true)}
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
             title="Editar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,7 +62,7 @@ export default function HabitCard({
           </button>
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
             title="Eliminar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,8 +76,8 @@ export default function HabitCard({
         <button
           onClick={() => onToggleCompletion(habit.id, today, !isCompletedToday)}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isCompletedToday
-              ? 'bg-green-100 text-green-700 hover:bg-green-200'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-500/30'
+              : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
             }`}
         >
           {isCompletedToday ? (
@@ -108,7 +108,7 @@ export default function HabitCard({
       </div>
 
       <div className="flex items-center gap-1">
-        <span className="text-xs text-gray-500 mr-2">Últimos 7 días:</span>
+        <span className="text-xs text-slate-500 dark:text-slate-400 mr-2">Últimos 7 días:</span>
         {last7Days.map((date) => {
           const isCompleted = isCompletedOnDate(habit.completions, date)
           const dayName = new Date(date).toLocaleDateString('es', { weekday: 'narrow' })
@@ -117,7 +117,7 @@ export default function HabitCard({
               key={date}
               className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium ${isCompleted
                   ? 'bg-green-500 text-white'
-                  : 'bg-gray-100 text-gray-400'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500'
                 }`}
               title={new Date(date).toLocaleDateString('es')}
             >
@@ -128,16 +128,16 @@ export default function HabitCard({
       </div>
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
-            <h4 className="text-lg font-bold text-gray-800 mb-2">¿Eliminar hábito?</h4>
-            <p className="text-gray-600 mb-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-sm w-full">
+            <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">¿Eliminar hábito?</h4>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
               Esta acción no se puede deshacer. Se eliminará el hábito &quot;{habit.title}&quot; y todo su historial.
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                className="flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium"
               >
                 Cancelar
               </button>
