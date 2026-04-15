@@ -8,17 +8,24 @@ export default function Sidebar() {
     const router = useRouter();
     const pathname = usePathname();
     const [user, setUser] = React.useState<any>(null);
+    const [expiringCount, setExpiringCount] = React.useState(0);
 
     React.useEffect(() => {
-        fetch('/api/auth/me')
-            .then(res => {
-                if (res.ok) return res.json();
-                return null;
-            })
-            .then(data => {
-                if (data?.user) setUser(data.user);
-            })
-            .catch(err => console.error('Failed to fetch user', err));
+        Promise.all([
+            fetch('/api/auth/me').then(res => res.ok ? res.json() : null),
+            fetch('/api/checklists').then(res => res.ok ? res.json() : []),
+        ]).then(([userData, checklists]) => {
+            if (userData?.user) setUser(userData.user);
+            const days = userData?.user?.checklistAlertDays ?? 3;
+            if (days > 0) {
+                const now = new Date();
+                setExpiringCount(checklists.filter((c: any) => {
+                    if (!c.endDate) return false;
+                    const d = Math.ceil((new Date(c.endDate).getTime() - now.getTime()) / 86400000);
+                    return d >= 0 && d <= days;
+                }).length);
+            }
+        }).catch(err => console.error('Failed to fetch sidebar data', err));
     }, []);
 
     const handleLogout = async () => {
@@ -60,6 +67,11 @@ export default function Sidebar() {
                 <Link href="/checklists" className={getLinkClass('/checklists')}>
                     <span className="material-symbols-outlined">fact_check</span>
                     <span className="font-medium hidden lg:block">Checklists</span>
+                    {expiringCount > 0 && (
+                        <span className="ml-auto bg-amber-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center hidden lg:flex">
+                            {expiringCount}
+                        </span>
+                    )}
                 </Link>
                 <Link href="/finances" className={getLinkClass('/finances')}>
                     <span className="material-symbols-outlined">payments</span>

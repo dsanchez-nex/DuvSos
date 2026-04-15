@@ -16,6 +16,7 @@ export default function SettingsPage() {
         return 'system';
     });
     const [cardLimit, setCardLimit] = useState(4);
+    const [checklistAlertDays, setChecklistAlertDays] = useState(3);
     const [isDirty, setIsDirty] = useState(false);
     const [user, setUser] = React.useState<any>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -32,6 +33,9 @@ export default function SettingsPage() {
                     const userTheme = data.user.theme || 'system';
                     if (['light', 'dark', 'system'].includes(userTheme)) {
                         setTheme(userTheme as 'light' | 'dark' | 'system');
+                    }
+                    if (data.user.checklistAlertDays !== undefined) {
+                        setChecklistAlertDays(data.user.checklistAlertDays);
                     }
                 } else {
                     window.location.href = '/login';
@@ -71,6 +75,7 @@ export default function SettingsPage() {
                         email: user.email,
                         tagline: user.tagline,
                         theme: theme,
+                        checklistAlertDays: checklistAlertDays,
                     }),
                 });
 
@@ -188,6 +193,23 @@ export default function SettingsPage() {
                                                 key={num}
                                                 onClick={() => { setCardLimit(num); setIsDirty(true); }}
                                                 className={`w-10 h-10 rounded-lg border-2 transition-all font-bold ${cardLimit === num ? 'border-primary bg-primary/10 text-primary' : 'border-slate-200 dark:border-slate-700 hover:border-primary/30'}`}
+                                            >
+                                                {num}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between p-3 rounded-lg hover:bg-background-light dark:hover:bg-background-dark transition-colors">
+                                    <div>
+                                        <h3 className="font-medium">Checklist expiration alert</h3>
+                                        <p className="text-xs text-slate-500">Days before expiration to show badge in sidebar. Set to 0 to disable.</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {[0, 1, 2, 3, 4, 5].map(num => (
+                                            <button
+                                                key={num}
+                                                onClick={() => { setChecklistAlertDays(num); setIsDirty(true); }}
+                                                className={`w-10 h-10 rounded-lg border-2 transition-all font-bold ${checklistAlertDays === num ? 'border-primary bg-primary/10 text-primary' : 'border-slate-200 dark:border-slate-700 hover:border-primary/30'}`}
                                             >
                                                 {num}
                                             </button>
