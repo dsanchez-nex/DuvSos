@@ -17,10 +17,14 @@ model User {
   image     String?
   tagline   String?  @default("Productivity Enthusiast")
   theme     String   @default("system")
+  checklistAlertDays Int @default(3)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  habits   Habit[]
-  todos    Todo[]
+  habits              Habit[]
+  todos               Todo[]
+  checklists          Checklist[]
+  checklistCategories ChecklistCategory[]
+  reminders           Reminder[]
 }
 
 model Habit {
@@ -47,6 +51,54 @@ model Completion {
   @@index([habitId])
 }
 
+model ChecklistCategory {
+  id         Int         @id @default(autoincrement())
+  name       String
+  color      String      @default("#3b82f6")
+  icon       String      @default("folder")
+  createdAt  DateTime    @default(now())
+  userId     Int?
+  user       User?       @relation(fields: [userId], references: [id])
+  checklists Checklist[]
+
+  @@index([userId])
+}
+
+model Checklist {
+  id          Int                @id @default(autoincrement())
+  title       String
+  description String?
+  color       String             @default("#3b82f6")
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  userId      Int?
+  user        User?              @relation(fields: [userId], references: [id])
+  categoryId  Int?
+  category    ChecklistCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  items       ChecklistItem[]
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model ChecklistItem {
+  id          Int       @id @default(autoincrement())
+  title       String
+  completed   Boolean   @default(false)
+  position    Int       @default(0)
+  notes       String?
+  priority    String    @default("normal") // low, normal, high
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  checklistId Int
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  @@index([checklistId])
+  @@index([checklistId, position])
+}
+
 model Todo {
   id         Int      @id @default(autoincrement())
   title      String
@@ -59,4 +111,20 @@ model Todo {
 
   @@index([userId])
   @@index([userId, completed, position])
+}
+
+model Reminder {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  dueDate     DateTime
+  completed   Boolean  @default(false)
+  priority    String   @default("normal") // low, normal, high
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, completed, dueDate])
 }
