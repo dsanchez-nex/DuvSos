@@ -5,7 +5,7 @@ import { jwtVerify } from 'jose'
 const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key-change-it'
 const key = new TextEncoder().encode(SECRET_KEY)
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const session = request.cookies.get('session')?.value
 
     // Verify session

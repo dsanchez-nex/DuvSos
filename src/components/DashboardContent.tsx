@@ -3,12 +3,29 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Habit } from '@/types/habit';
+import { Checklist } from '@/types/checklist';
+import { Reminder } from '@/types/reminder';
 import { getTodayDateString, isCompletedOnDate } from '@/lib/habit-utils';
 
 const DEFAULT_CARD_LIMIT = 4;
 
+function getChecklistProgress(c: Checklist) {
+    if (c.items.length === 0) return 0;
+    return Math.round((c.items.filter(i => i.completed).length / c.items.length) * 100);
+}
+
+function getDueBadge(dateStr: string) {
+    const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86400000);
+    if (diff < 0) return { text: 'Overdue', class: 'text-red-500' };
+    if (diff === 0) return { text: 'Today', class: 'text-amber-600' };
+    if (diff === 1) return { text: 'Tomorrow', class: 'text-amber-500' };
+    return { text: `${diff}d left`, class: 'text-slate-500' };
+}
+
 export default function DashboardContent() {
     const [habits, setHabits] = useState<Habit[]>([]);
+    const [checklists, setChecklists] = useState<Checklist[]>([]);
+    const [reminders, setReminders] = useState<Reminder[]>([]);
     const [loading, setLoading] = useState(true);
     const [cardLimit, setCardLimit] = useState(DEFAULT_CARD_LIMIT);
 
@@ -17,20 +34,23 @@ export default function DashboardContent() {
         const savedLimit = localStorage.getItem('dashboard-card-limit');
         if (savedLimit) setCardLimit(parseInt(savedLimit));
 
-        const fetchHabits = async () => {
+        const fetchData = async () => {
             try {
-                const response = await fetch('/api/habits');
-                if (response.ok) {
-                    const data = await response.json();
-                    setHabits(data);
-                }
+                const [habitsRes, checklistsRes, remindersRes] = await Promise.all([
+                    fetch('/api/habits'),
+                    fetch('/api/checklists'),
+                    fetch('/api/reminders'),
+                ]);
+                if (habitsRes.ok) setHabits(await habitsRes.json());
+                if (checklistsRes.ok) setChecklists(await checklistsRes.json());
+                if (remindersRes.ok) setReminders(await remindersRes.json());
             } catch (error) {
-                console.error('Failed to fetch habits', error);
+                console.error('Failed to fetch dashboard data', error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchHabits();
+        fetchData();
     }, []);
 
     const handleToggleCompletion = async (id: number, completed: boolean) => {
@@ -144,29 +164,71 @@ export default function DashboardContent() {
                 <div className="bg-white dark:bg-background-dark/40 border border-primary/10 rounded-2xl p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-bold flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary">checklist</span>
-                            Top Priorities
+                            <span className="material-symbols-outlined text-primary">fact_check</span>
+                            Active Checklists
                         </h2>
-                        <a href="#" className="text-xs font-bold text-primary hover:underline">View All</a>
+                        <Link href="/checklists" className="text-xs font-bold text-primary hover:underline">View All</Link>
                     </div>
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-l-4 border-amber-400">
-                            <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary" />
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold">Q4 Revenue Report</p>
-                                <p className="text-[10px] text-slate-500">Due in 2 hours • Finance</p>
-                            </div>
+                    {checklists.filter(c => {
+                        const progress = getChecklistProgress(c);
+                        return progress < 100;
+                    }).length === 0 ? (
+                        <p className="text-sm text-slate-400 text-center py-4">No active checklists</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {checklists.filter(c => getChecklistProgress(c) < 100).slice(0, 3).map(c => {
+                                const progress = getChecklistProgress(c);
+                                const completed = c.items.filter(i => i.completed).length;
+                                return (
+                                    <div key={c.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{c.title}</p>
+                                            <span className="text-xs text-slate-500">{completed}/{c.items.length}</span>
+                                        </div>
+                                        <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                            <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: c.color }} />
+                                        </div>
+                                        {c.endDate && (
+                                            <p className={`text-[10px] mt-1 ${getDueBadge(c.endDate).class}`}>
+                                                {getDueBadge(c.endDate).text}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
-                        <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border-l-4 border-blue-400">
-                            <input type="checkbox" className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary" />
-                            <div className="flex-1">
-                                <p className="text-sm font-semibold">Call Mom</p>
-                                <p className="text-[10px] text-slate-500">6:00 PM • Reminders</p>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
             </div>
+
+            {/* Upcoming Reminders */}
+            {reminders.filter(r => !r.completed).length > 0 && (
+                <section>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold flex items-center gap-2">
+                            <span className="material-symbols-outlined text-primary">notifications_active</span>
+                            Upcoming Reminders
+                        </h2>
+                        <Link href="/reminders" className="text-sm font-medium text-primary hover:underline">View All</Link>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {reminders.filter(r => !r.completed).slice(0, 3).map(r => {
+                            const due = getDueBadge(r.dueDate);
+                            return (
+                                <div key={r.id} className="flex items-center gap-3 p-4 bg-white dark:bg-background-dark/40 border border-primary/10 rounded-xl">
+                                    <span className={`material-symbols-outlined text-lg ${r.priority === 'high' ? 'text-red-500' : r.priority === 'low' ? 'text-blue-400' : 'text-amber-500'}`}>
+                                        {r.priority === 'high' ? 'priority_high' : 'schedule'}
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{r.title}</p>
+                                        <p className={`text-[10px] ${due.class}`}>{due.text}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             <section>
                 <div className="flex items-center justify-between mb-4">
