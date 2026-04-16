@@ -41,3 +41,30 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# AI Agent Folders (synced from .agent/)
+/.agente/
+/.claude/
+/.cursor/
+/.kilocode/
+/.kiro/
+/.opencode/
+/windsurf/
+/.costrict/
+/.roo/
+/.qwen/
+/.gemini/
+/.trae/
+/auggie/
+/codebuddy/
+/continue/
+/codex/
+/crush/
+/factory/
+/iflow/
+/junie/
+/pi/
+/qoder/
+/bob/
+/amazonq/
+/.github/
