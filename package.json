@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:sync": "prisma generate && prisma db push",
+    "db:migrate": "prisma generate && prisma migrate dev"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.4.0",
