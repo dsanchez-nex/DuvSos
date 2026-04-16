@@ -10,8 +10,9 @@ import { getTodayDateString, isCompletedOnDate } from '@/lib/habit-utils';
 const DEFAULT_CARD_LIMIT = 4;
 
 function getChecklistProgress(c: Checklist) {
-    if (c.items.length === 0) return 0;
-    return Math.round((c.items.filter(i => i.completed).length / c.items.length) * 100);
+    const items = Array.isArray(c.items) ? c.items : [];
+    if (items.length === 0) return 0;
+    return Math.round((items.filter(i => i.completed).length / items.length) * 100);
 }
 
 function getDueBadge(dateStr: string) {
@@ -176,9 +177,10 @@ export default function DashboardContent() {
                         <p className="text-sm text-slate-400 text-center py-4">No active checklists</p>
                     ) : (
                         <div className="space-y-3">
-                            {checklists.filter(c => getChecklistProgress(c) < 100).slice(0, 3).map(c => {
-                                const progress = getChecklistProgress(c);
-                                const completed = c.items.filter(i => i.completed).length;
+                    {checklists.filter(c => getChecklistProgress(c) < 100).slice(0, 3).map(c => {
+                        const progress = getChecklistProgress(c);
+                                const items = Array.isArray(c.items) ? c.items : [];
+                                const completed = items.filter(i => i.completed).length;
                                 return (
                                     <div key={c.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
                                         <div className="flex items-center justify-between mb-1.5">

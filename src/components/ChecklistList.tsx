@@ -24,8 +24,9 @@ export function getStatus(c: Checklist): { label: string; class: string } {
 }
 
 function getProgress(c: Checklist) {
-  if (c.items.length === 0) return 0
-  return Math.round((c.items.filter(i => i.completed).length / c.items.length) * 100)
+  const items = Array.isArray(c.items) ? c.items : [];
+  if (items.length === 0) return 0
+  return Math.round((items.filter(i => i.completed).length / items.length) * 100)
 }
 
 export type SortOption = 'newest' | 'name' | 'progress' | 'due-date'
@@ -146,7 +147,8 @@ function ExpandedItems({ checklist: c, onToggleItem, onUpdateItem, onDeleteItem,
     const [moved] = visible.splice(dragItem.current, 1)
     visible.splice(dragOver.current, 0, moved)
     // Merge back hidden completed items at end
-    const hidden = hideCompleted ? c.items.filter(i => i.completed) : []
+    const itemsList = Array.isArray(c.items) ? c.items : []
+    const hidden = hideCompleted ? itemsList.filter(i => i.completed) : []
     const all = [...visible, ...hidden].map((item, i) => ({ ...item, position: i }))
     onReorder(c.id, all)
     dragItem.current = null; dragOver.current = null
@@ -180,14 +182,15 @@ function ExpandedItems({ checklist: c, onToggleItem, onUpdateItem, onDeleteItem,
   }, [undoItem, c.id, onDeleteItem])
 
   const getVisibleItems = () => {
-    let items = [...c.items]
+    let items = Array.isArray(c.items) ? [...c.items] : []
     if (undoItem) items = items.filter(i => i.id !== undoItem.item.id)
     if (hideCompleted) items = items.filter(i => !i.completed)
     return items
   }
 
   const visibleItems = getVisibleItems()
-  const completedCount = c.items.filter(i => i.completed).length
+  const itemsForCheck = Array.isArray(c.items) ? c.items : []
+  const completedCount = itemsForCheck.filter(i => i.completed).length
 
   return (
     <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-700 pt-3">
@@ -427,7 +430,10 @@ export default function ChecklistList({
                       <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: c.color }} />
                     </div>
                     <span className="text-xs font-medium text-slate-500 dark:text-slate-400 w-16 text-right">
-                      {c.items.filter(i => i.completed).length}/{c.items.length} ({progress}%)
+                       {(() => {
+                         const itemsList = Array.isArray(c.items) ? c.items : []
+                         return `${itemsList.filter(i => i.completed).length}/${itemsList.length} (${progress}%)`
+                       })()}
                     </span>
                   </div>
                 </div>

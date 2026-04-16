@@ -29,7 +29,7 @@ export default function ChecklistsPage() {
         fetch('/api/checklists').then(r => r.json()),
         fetch('/api/checklist-categories').then(r => r.json()),
       ])
-      setChecklists(cl)
+      setChecklists(Array.isArray(cl) ? cl : [])
       setCategories(cat)
     } catch (err) { console.error(err) }
     finally { setLoading(false) }

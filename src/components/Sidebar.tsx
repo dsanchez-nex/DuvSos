@@ -19,7 +19,8 @@ export default function Sidebar() {
             const days = userData?.user?.checklistAlertDays ?? 3;
             if (days > 0) {
                 const now = new Date();
-                setExpiringCount(checklists.filter((c: any) => {
+                const list = Array.isArray(checklists) ? checklists : [];
+                setExpiringCount(list.filter((c: any) => {
                     if (!c.endDate) return false;
                     const d = Math.ceil((new Date(c.endDate).getTime() - now.getTime()) / 86400000);
                     return d >= 0 && d <= days;
