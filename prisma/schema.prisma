@@ -22,6 +22,7 @@ model User {
   updatedAt DateTime @updatedAt
   habits              Habit[]
   todos               Todo[]
+  todoCategories      TodoCategory[]
   checklists          Checklist[]
   checklistCategories ChecklistCategory[]
   reminders           Reminder[]
@@ -71,6 +72,12 @@ model Checklist {
   color       String             @default("#3b82f6")
   startDate   DateTime?
   endDate     DateTime?
+  isTemplate  Boolean            @default(false)
+  version     Int                @default(1)
+  lifecycleState String          @default("Active")
+  templateId  Int?
+  recurrencePattern String?
+  completedAt DateTime?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   userId      Int?
@@ -81,36 +88,72 @@ model Checklist {
 
   @@index([userId])
   @@index([categoryId])
+  @@index([lifecycleState])
 }
 
 model ChecklistItem {
-  id          Int       @id @default(autoincrement())
-  title       String
-  completed   Boolean   @default(false)
-  position    Int       @default(0)
-  notes       String?
-  priority    String    @default("normal") // low, normal, high
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  checklistId Int
-  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  id              Int       @id @default(autoincrement())
+  title           String
+  completed       Boolean   @default(false)
+  position        Int       @default(0)
+  notes           String?
+  priority        String    @default("normal") // low, normal, high
+  parentId        Int?
+  blockedByItemId Int?
+  effortEstimate  Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  checklistId     Int
+  checklist       Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
 
   @@index([checklistId])
   @@index([checklistId, position])
+  @@index([parentId])
+  @@index([blockedByItemId])
 }
 
 model Todo {
-  id         Int      @id @default(autoincrement())
-  title      String
-  completed  Boolean  @default(false)
-  position   Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  userId     Int?
-  user       User?    @relation(fields: [userId], references: [id])
+  id           Int       @id @default(autoincrement())
+  title        String
+  description  String?
+  completed    Boolean   @default(false)
+  priority     String    @default("normal") // low, normal, high
+  dueDate      DateTime?
+  dueTime      String?
+  effortMinutes Int      @default(0)
+  position     Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  userId       Int?
+  user         User?     @relation(fields: [userId], references: [id])
+  parentId     Int?
+  parent       Todo?     @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subTasks     Todo[]    @relation("SubTasks")
+  categoryId   Int?
+  category     TodoCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([userId, completed, position])
+  @@index([parentId])
+  @@index([categoryId])
+}
+
+model TodoCategory {
+  id          Int       @id @default(autoincrement())
+  name        String
+  color       String    @default("#3b82f6")
+  icon        String    @default("folder")
+  description String?
+  parentId    Int?
+  parent      TodoCategory? @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    TodoCategory[] @relation("CategoryTree")
+  createdAt   DateTime  @default(now())
+  userId      Int?
+  user        User?     @relation(fields: [userId], references: [id])
+  todos       Todo[]
+
+  @@index([userId])
+  @@index([parentId])
 }
 
 model Reminder {

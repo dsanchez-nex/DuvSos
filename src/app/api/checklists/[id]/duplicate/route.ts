@@ -20,6 +20,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     })
     if (!original) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+    const isTemplate = original.isTemplate
     const copy = await prisma.checklist.create({
       data: {
         title: `${original.title} (copy)`,
@@ -27,6 +28,10 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         color: original.color,
         categoryId: original.categoryId,
         userId,
+        isTemplate: isTemplate,
+        lifecycleState: isTemplate ? 'Active' : original.lifecycleState,
+        templateId: isTemplate ? original.id : original.templateId,
+        version: isTemplate ? 1 : original.version,
         items: {
           create: original.items.map(item => ({
             title: item.title,
@@ -34,6 +39,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
             priority: item.priority,
             position: item.position,
             completed: false,
+            effortEstimate: item.effortEstimate,
           })),
         },
       },
