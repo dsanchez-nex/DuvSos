@@ -5,6 +5,16 @@ import SettingCard from '@/components/SettingCard';
 import AppLayout from '@/components/AppLayout';
 import Toast from '@/components/Toast';
 
+const CATEGORY_COLORS = [
+  { name: 'Blue', value: '#3b82f6' },
+  { name: 'Green', value: '#22c55e' },
+  { name: 'Red', value: '#ef4444' },
+  { name: 'Amber', value: '#f59e0b' },
+  { name: 'Purple', value: '#a855f7' },
+  { name: 'Pink', value: '#ec4899' },
+  { name: 'Slate', value: '#64748b' },
+];
+
 export default function SettingsPage() {
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
         if (typeof window !== 'undefined') {
@@ -20,6 +30,12 @@ export default function SettingsPage() {
     const [isDirty, setIsDirty] = useState(false);
     const [user, setUser] = React.useState<any>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    // Todo Categories
+    const [categories, setCategories] = useState<any[]>([]);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [newCategoryColor, setNewCategoryColor] = useState(CATEGORY_COLORS[0].value);
+    const [showCategoryForm, setShowCategoryForm] = useState(false);
 
     useEffect(() => {
         const savedLimit = localStorage.getItem('dashboard-card-limit');
@@ -42,7 +58,57 @@ export default function SettingsPage() {
                 }
             })
             .catch(err => console.error('Failed to fetch user', err));
+
+        fetchCategories();
     }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const res = await fetch('/api/todo-categories');
+            if (res.ok) {
+                const data = await res.json();
+                setCategories(data);
+            }
+        } catch (err) {
+            console.error('Failed to fetch categories', err);
+        }
+    };
+
+    const handleCreateCategory = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newCategoryName.trim()) return;
+        try {
+            const res = await fetch('/api/todo-categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newCategoryName.trim(),
+                    color: newCategoryColor,
+                    icon: 'folder',
+                }),
+            });
+            if (!res.ok) throw new Error('Failed to create category');
+            setNewCategoryName('');
+            setNewCategoryColor(CATEGORY_COLORS[0].value);
+            setShowCategoryForm(false);
+            fetchCategories();
+            setToast({ message: 'Category created!', type: 'success' });
+        } catch (err) {
+            setToast({ message: 'Failed to create category', type: 'error' });
+        }
+    };
+
+    const handleDeleteCategory = async (id: number) => {
+        if (!confirm('Delete this category? Todos will be moved to General.')) return;
+        try {
+            const res = await fetch(`/api/todo-categories/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed to delete category');
+            fetchCategories();
+            setToast({ message: 'Category deleted', type: 'success' });
+        } catch (err) {
+            setToast({ message: 'Failed to delete category', type: 'error' });
+        }
+    };
 
     const applyTheme = (t: 'light' | 'dark' | 'system') => {
         const root = document.documentElement;
@@ -216,6 +282,92 @@ export default function SettingsPage() {
                                         ))}
                                     </div>
                                 </div>
+                            </div>
+                        </SettingCard>
+
+                        {/* Todo Categories */}
+                        <SettingCard>
+                            <div className="flex items-center gap-2 mb-6">
+                                <span className="material-symbols-outlined text-primary">label</span>
+                                <h2 className="text-lg font-semibold">Todo Categories</h2>
+                            </div>
+                            <div className="space-y-4">
+                                {categories.length === 0 ? (
+                                    <p className="text-sm text-slate-500">No categories yet.</p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {categories.map((cat) => (
+                                            <div
+                                                key={cat.id}
+                                                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+                                            >
+                                                <span
+                                                    className="w-3 h-3 rounded-full"
+                                                    style={{ backgroundColor: cat.color }}
+                                                />
+                                                <span className="text-sm font-medium">{cat.name}</span>
+                                                {cat.name !== 'General' && (
+                                                    <button
+                                                        onClick={() => handleDeleteCategory(cat.id)}
+                                                        className="text-slate-400 hover:text-red-500"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">close</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {showCategoryForm ? (
+                                    <form onSubmit={handleCreateCategory} className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                        <input
+                                            type="text"
+                                            value={newCategoryName}
+                                            onChange={(e) => setNewCategoryName(e.target.value)}
+                                            placeholder="Category name..."
+                                            className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+                                            autoFocus
+                                        />
+                                        <div className="flex gap-2">
+                                            {CATEGORY_COLORS.map((c) => (
+                                                <button
+                                                    key={c.value}
+                                                    type="button"
+                                                    onClick={() => setNewCategoryColor(c.value)}
+                                                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                                                        newCategoryColor === c.value ? 'border-slate-900 dark:border-white scale-110' : 'border-transparent'
+                                                    }`}
+                                                    style={{ backgroundColor: c.value }}
+                                                    title={c.name}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => { setShowCategoryForm(false); setNewCategoryName(''); }}
+                                                className="px-4 py-2 text-slate-500 hover:text-slate-700 text-sm"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                disabled={!newCategoryName.trim()}
+                                                className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 disabled:opacity-50"
+                                            >
+                                                Create
+                                            </button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <button
+                                        onClick={() => setShowCategoryForm(true)}
+                                        className="px-4 py-2 border border-primary/30 text-primary rounded-lg hover:bg-primary/5 text-sm font-medium transition-colors"
+                                    >
+                                        + New Category
+                                    </button>
+                                )}
                             </div>
                         </SettingCard>
 
