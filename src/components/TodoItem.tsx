@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, memo } from 'react'
+import { formatEffort, getPriorityColor, formatDate, isOverdue } from '@/lib/todo-utils'
 
 interface Category {
   id: number
@@ -41,77 +42,45 @@ interface TodoItemProps {
   todo: Todo
   onToggle: (id: number, completed: boolean) => void
   onDelete: (id: number) => void
-  onEdit: (id: number, title: string) => void
-  categories?: Category[]
-  formatEffort?: (minutes: number) => string
-  getPriorityColor?: (priority: string) => string
+  onEdit: (todo: Todo) => void
+  onCreateSubtask: (parentId: number, title: string) => void
 }
 
-export default function TodoItem({ 
-  todo, 
-  onToggle, 
-  onDelete, 
+function TodoItem({
+  todo,
+  onToggle,
+  onDelete,
   onEdit,
-  categories = [],
-  formatEffort = (m) => m > 0 ? `${m}m` : '',
-  getPriorityColor = () => 'text-slate-400'
+  onCreateSubtask,
 }: TodoItemProps) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [editTitle, setEditTitle] = useState(todo.title)
   const [showSubtasks, setShowSubtasks] = useState(false)
+  const [showAddSubtask, setShowAddSubtask] = useState(false)
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('')
 
-  const handleSave = () => {
-    if (editTitle.trim() && editTitle !== todo.title) {
-      onEdit(todo.id, editTitle.trim())
-    } else {
-      setEditTitle(todo.title)
-    }
-    setIsEditing(false)
+  const handleAddSubtask = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newSubtaskTitle.trim()) return
+    onCreateSubtask(todo.id, newSubtaskTitle.trim())
+    setNewSubtaskTitle('')
+    setShowAddSubtask(false)
+    setShowSubtasks(true)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleSave()
-    else if (e.key === 'Escape') {
-      setEditTitle(todo.title)
-      setIsEditing(false)
-    }
-  }
-
-  const formatDate = (dateStr?: string): string => {
-    if (!dateStr) return ''
-    const date = new Date(dateStr)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    if (date.getTime() === today.getTime()) return 'Today'
-    
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    if (date.getTime() === tomorrow.getTime()) return 'Tomorrow'
-    
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
-
-  const isOverdue = (): boolean => {
-    if (!todo.dueDate || todo.completed) return false
-    const due = new Date(todo.dueDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return due < today
-  }
+  const todoIsOverdue = isOverdue(todo.dueDate, todo.completed)
 
   return (
     <div className="space-y-2">
       <div
-        className={`flex items-center gap-3 p-4 rounded-xl transition-all ${
+        className={`flex items-start gap-3 p-4 rounded-xl transition-all ${
           todo.completed
             ? 'bg-slate-50 dark:bg-slate-800/50'
             : 'bg-white dark:bg-slate-800'
-        } border border-slate-100 dark:border-slate-700 group`}
+        } border border-slate-100 dark:border-slate-700 group hover:shadow-sm`}
       >
+        {/* Checkbox */}
         <button
           onClick={() => onToggle(todo.id, !todo.completed)}
-          className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+          className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${
             todo.completed
               ? 'bg-green-500 border-green-500'
               : 'border-slate-300 dark:border-slate-600 hover:border-green-500'
@@ -124,119 +93,154 @@ export default function TodoItem({
           )}
         </button>
 
-        <div className="flex-1 min-w-0">
-          {isEditing ? (
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onBlur={handleSave}
-              onKeyDown={handleKeyDown}
-              autoFocus
-              className="w-full px-2 py-1 bg-transparent border-b-2 border-primary focus:outline-none text-slate-900 dark:text-white"
-            />
-          ) : (
-            <div className="space-y-1">
-              <span
-                onDoubleClick={() => setIsEditing(true)}
-                className={`block ${
-                  todo.completed
-                    ? 'text-slate-400 line-through'
-                    : 'text-slate-900 dark:text-white'
-                }`}
-              >
-                {todo.title}
-              </span>
-              
-              {/* Meta info */}
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                {/* Priority */}
-                <span className={`font-medium ${getPriorityColor(todo.priority)}`}>
-                  {todo.priority}
-                </span>
-                
-                {/* Due date */}
-                {todo.dueDate && (
-                  <span className={`flex items-center gap-1 ${isOverdue() ? 'text-red-500' : 'text-slate-400'}`}>
-                    <span className="material-symbols-outlined text-sm">event</span>
-                    {formatDate(todo.dueDate)}
-                    {todo.dueTime && ` ${todo.dueTime}`}
-                  </span>
-                )}
-                
-                {/* Effort */}
-                {todo.effortMinutes > 0 && (
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">schedule</span>
-                    {formatEffort(todo.effortMinutes)}
-                  </span>
-                )}
-                
-                {/* Category */}
-                {todo.category && (
-                  <span 
-                    className="px-2 py-0.5 rounded-full text-white"
-                    style={{ backgroundColor: todo.category.color }}
-                  >
-                    {todo.category.name}
-                  </span>
-                )}
-                
-                {/* Subtasks indicator */}
-                {(todo.subTasksCount || 0) > 0 && (
-                  <button
-                    onClick={() => setShowSubtasks(!showSubtasks)}
-                    className="text-slate-400 hover:text-slate-600 flex items-center gap-1"
-                  >
-                    <span className="material-symbols-outlined text-sm">account_tree</span>
-                    {todo.completedSubTasksCount}/{todo.subTasksCount}
-                    {todo.progress !== undefined && ` (${todo.progress}%)`}
-                  </button>
-                )}
-                
-                {/* Overdue badge */}
-                {isOverdue() && (
-                  <span className="px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-medium">
-                    overdue
-                  </span>
-                )}
-              </div>
-              
-              {/* Description */}
-              {todo.description && (
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  {todo.description}
-                </p>
-              )}
-            </div>
+        {/* Content */}
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* Title row */}
+          <div className="flex items-start justify-between gap-2">
+            <span
+              onDoubleClick={() => onEdit(todo)}
+              className={`text-base font-medium break-words ${
+                todo.completed
+                  ? 'text-slate-400 line-through'
+                  : 'text-slate-900 dark:text-white'
+              } cursor-pointer`}
+            >
+              {todo.title}
+            </span>
+          </div>
+
+          {/* Description */}
+          {todo.description && (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {todo.description}
+            </p>
           )}
+
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {/* Priority badge */}
+            <span className={`px-2 py-0.5 rounded-full font-medium ${getPriorityColor(todo.priority)} bg-slate-100 dark:bg-slate-700`}>
+              {todo.priority}
+            </span>
+
+            {/* Due date */}
+            {todo.dueDate && (
+              <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${todoIsOverdue ? 'text-red-600 bg-red-50 dark:bg-red-900/20' : 'text-slate-500 bg-slate-50 dark:bg-slate-700'}`}>
+                <span className="material-symbols-outlined text-sm">event</span>
+                {formatDate(todo.dueDate)}
+                {todo.dueTime && ` ${todo.dueTime}`}
+              </span>
+            )}
+
+            {/* Effort */}
+            {todo.effortMinutes > 0 && (
+              <span className="text-slate-500 flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-700">
+                <span className="material-symbols-outlined text-sm">schedule</span>
+                {formatEffort(todo.effortMinutes)}
+              </span>
+            )}
+
+            {/* Category */}
+            {todo.category && (
+              <span
+                className="px-2 py-0.5 rounded-full text-white text-xs font-medium"
+                style={{ backgroundColor: todo.category.color }}
+              >
+                {todo.category.name}
+              </span>
+            )}
+
+            {/* Subtasks indicator */}
+            {(todo.subTasksCount || 0) > 0 && (
+              <button
+                onClick={() => setShowSubtasks(!showSubtasks)}
+                className="text-slate-500 hover:text-slate-700 flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-700 transition-colors"
+              >
+                <span className={`material-symbols-outlined text-sm transition-transform ${showSubtasks ? 'rotate-180' : ''}`}>
+                  expand_more
+                </span>
+                <span className="text-xs font-medium">Subtasks</span>
+                <span className="text-xs text-slate-400">
+                  {todo.completedSubTasksCount}/{todo.subTasksCount}
+                </span>
+                {todo.progress !== undefined && (
+                  <span className="text-xs text-slate-400">({todo.progress}%)</span>
+                )}
+              </button>
+            )}
+
+            {/* Overdue badge */}
+            {todoIsOverdue && (
+              <span className="px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-medium">
+                overdue
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Actions */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
-            onClick={() => setIsEditing(true)}
-            className="flex-shrink-0 p-2 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+            onClick={() => setShowAddSubtask(!showAddSubtask)}
+            className="p-2 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            title="Add subtask"
+          >
+            <span className="material-symbols-outlined text-lg">add_task</span>
+          </button>
+          <button
+            onClick={() => onEdit(todo)}
+            className="p-2 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
             title="Edit"
           >
             <span className="material-symbols-outlined text-lg">edit</span>
           </button>
           <button
             onClick={() => onDelete(todo.id)}
-            className="flex-shrink-0 p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             title="Delete"
           >
             <span className="material-symbols-outlined text-lg">delete</span>
           </button>
         </div>
       </div>
-      
+
+      {/* Add Subtask Form */}
+      {showAddSubtask && (
+        <div className="ml-8">
+          <form onSubmit={handleAddSubtask} className="flex gap-2">
+            <input
+              type="text"
+              value={newSubtaskTitle}
+              onChange={(e) => setNewSubtaskTitle(e.target.value)}
+              placeholder="Subtask title..."
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={!newSubtaskTitle.trim()}
+              className="px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 disabled:opacity-50"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowAddSubtask(false); setNewSubtaskTitle('') }}
+              className="px-3 py-2 text-slate-400 hover:text-slate-600 text-sm"
+            >
+              Cancel
+            </button>
+          </form>
+        </div>
+      )}
+
       {/* Subtasks */}
       {showSubtasks && todo.subTasks && todo.subTasks.length > 0 && (
         <div className="ml-8 space-y-2">
           {todo.subTasks.map((subtask) => (
             <div
               key={subtask.id}
-              className={`flex items-center gap-3 p-3 rounded-lg ${
+              className={`group flex items-center gap-3 p-3 rounded-lg ${
                 subtask.completed
                   ? 'bg-slate-50 dark:bg-slate-800/30'
                   : 'bg-slate-50 dark:bg-slate-800/50'
@@ -259,6 +263,13 @@ export default function TodoItem({
               <span className={`flex-1 text-sm ${subtask.completed ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
                 {subtask.title}
               </span>
+              <button
+                onClick={() => onDelete(subtask.id)}
+                className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
+                title="Delete subtask"
+              >
+                <span className="material-symbols-outlined text-sm">delete</span>
+              </button>
             </div>
           ))}
         </div>
@@ -266,3 +277,5 @@ export default function TodoItem({
     </div>
   )
 }
+
+export default memo(TodoItem)
