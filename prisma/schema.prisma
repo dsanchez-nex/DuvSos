@@ -72,6 +72,12 @@ model Checklist {
   color       String             @default("#3b82f6")
   startDate   DateTime?
   endDate     DateTime?
+  isTemplate  Boolean            @default(false)
+  version     Int                @default(1)
+  lifecycleState String          @default("Active")
+  templateId  Int?
+  recurrencePattern String?
+  completedAt DateTime?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   userId      Int?
@@ -82,22 +88,28 @@ model Checklist {
 
   @@index([userId])
   @@index([categoryId])
+  @@index([lifecycleState])
 }
 
 model ChecklistItem {
-  id          Int       @id @default(autoincrement())
-  title       String
-  completed   Boolean   @default(false)
-  position    Int       @default(0)
-  notes       String?
-  priority    String    @default("normal") // low, normal, high
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  checklistId Int
-  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  id              Int       @id @default(autoincrement())
+  title           String
+  completed       Boolean   @default(false)
+  position        Int       @default(0)
+  notes           String?
+  priority        String    @default("normal") // low, normal, high
+  parentId        Int?
+  blockedByItemId Int?
+  effortEstimate  Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  checklistId     Int
+  checklist       Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
 
   @@index([checklistId])
   @@index([checklistId, position])
+  @@index([parentId])
+  @@index([blockedByItemId])
 }
 
 model Todo {

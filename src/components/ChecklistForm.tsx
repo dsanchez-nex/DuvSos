@@ -20,6 +20,8 @@ export default function ChecklistForm({ checklist, categories, onSave, onCancel,
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [categoryId, setCategoryId] = useState<number | null>(null)
+  const [isTemplate, setIsTemplate] = useState(false)
+  const [recurrencePattern, setRecurrencePattern] = useState('')
 
   useEffect(() => {
     if (checklist) {
@@ -29,6 +31,8 @@ export default function ChecklistForm({ checklist, categories, onSave, onCancel,
       setStartDate(checklist.startDate ? new Date(checklist.startDate).toISOString().split('T')[0] : '')
       setEndDate(checklist.endDate ? new Date(checklist.endDate).toISOString().split('T')[0] : '')
       setCategoryId(checklist.categoryId || null)
+      setIsTemplate(checklist.isTemplate || false)
+      setRecurrencePattern(checklist.recurrencePattern || '')
     }
   }, [checklist])
 
@@ -42,6 +46,8 @@ export default function ChecklistForm({ checklist, categories, onSave, onCancel,
       startDate: startDate || null,
       endDate: endDate || null,
       categoryId,
+      isTemplate,
+      recurrencePattern: recurrencePattern || null,
     })
   }
 
@@ -96,6 +102,26 @@ export default function ChecklistForm({ checklist, categories, onSave, onCancel,
                 {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
               </select>
             </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={isTemplate} onChange={e => setIsTemplate(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary" />
+                <span className="text-sm text-slate-700 dark:text-slate-300">Save as template</span>
+              </label>
+            </div>
+            {isTemplate && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Recurrence Pattern</label>
+                <select value={recurrencePattern} onChange={e => setRecurrencePattern(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="">None</option>
+                  <option value="EVERY_MONDAY">Every Monday</option>
+                  <option value="EVERY_FRIDAY">Every Friday</option>
+                  <option value="FIRST_FRIDAY_OF_MONTH">First Friday of Month</option>
+                  <option value="FIRST_MONDAY_OF_MONTH">First Monday of Month</option>
+                </select>
+              </div>
+            )}
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={onCancel}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium">
