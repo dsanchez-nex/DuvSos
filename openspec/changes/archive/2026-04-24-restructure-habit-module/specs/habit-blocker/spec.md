@@ -14,6 +14,6 @@ The system SHALL prevent marking a habit as completed if any of its defined bloc
 - **WHEN** a user attempts to complete "Summarize Concepts" but "Read 5 Pages" is not yet completed today
 - **THEN** the system rejects the completion and informs the user that the prerequisite habit is pending
 
-### Scenario: Unblocked habit completion
+#### Scenario: Unblocked habit completion
 - **WHEN** a user attempts to complete "Summarize Concepts" after "Read 5 Pages" has already been completed today
 - **THEN** the system allows the completion and records it
