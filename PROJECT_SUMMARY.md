@@ -20,7 +20,6 @@ Models: User, Habit, Completion, Checklist, ChecklistItem, ChecklistCategory, To
 - `/todos` - Todo management
 - `/checklists` - Checklist management
 - `/reminders` - Reminders
-- `/finances` - Finances (placeholder)
 - `/settings` - User settings
 - `/support` - Support page
 - `/login` - Authentication

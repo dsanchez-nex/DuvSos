@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/components/SidebarContext';
@@ -10,10 +10,13 @@ export default function Sidebar() {
     const pathname = usePathname();
     const [user, setUser] = React.useState<any>(null);
     const [expiringCount, setExpiringCount] = React.useState(0);
+    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
+    const profileTriggerRef = useRef<HTMLButtonElement>(null);
 
     const {
         isExpanded,
-        isCollapsed,
+
         isMobileOverlayOpen,
         toggle,
         closeMobileOverlay,
@@ -50,6 +53,36 @@ export default function Sidebar() {
             console.error('Logout failed', error);
         }
     };
+
+    // Click outside to close profile menu
+    useEffect(() => {
+        if (!profileMenuOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (
+                profileMenuRef.current &&
+                !profileMenuRef.current.contains(e.target as Node) &&
+                profileTriggerRef.current &&
+                !profileTriggerRef.current.contains(e.target as Node)
+            ) {
+                setProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [profileMenuOpen]);
+
+    // Close profile menu on Escape
+    useEffect(() => {
+        if (!profileMenuOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setProfileMenuOpen(false);
+                profileTriggerRef.current?.focus();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [profileMenuOpen]);
 
     const getLinkClass = (path: string) => {
         const isActive = pathname === path;
@@ -196,13 +229,6 @@ export default function Sidebar() {
                             </span>
                         )}
                     </Link>
-                    <Link href="/finances" className={getLinkClass('/finances')}>
-                        <span className="material-symbols-outlined shrink-0">payments</span>
-                        <span className={`
-                            font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-                            ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                        `}>Finances</span>
-                    </Link>
                     <Link href="/reminders" className={getLinkClass('/reminders')}>
                         <span className="material-symbols-outlined shrink-0">notifications_active</span>
                         <span className={`
@@ -218,51 +244,76 @@ export default function Sidebar() {
                         `}>Habits</span>
                     </Link>
 
-                    <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
-                        <Link href="/settings" className={getLinkClass('/settings')}>
-                            <span className="material-symbols-outlined shrink-0">settings</span>
-                            <span className={`
-                                font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-                                ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                            `}>Settings</span>
-                        </Link>
-                        <Link href="/support" className={getLinkClass('/support')}>
-                            <span className="material-symbols-outlined shrink-0">help_outline</span>
-                            <span className={`
-                                font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-                                ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                            `}>Support</span>
-                        </Link>
-                    </div>
                 </nav>
 
                 {/* User Profile */}
-                <div className="px-4 w-full mt-auto">
-                    <div className="flex items-center justify-between mt-6">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <img
-                                src={user?.image || "https://ui-avatars.com/api/?name=" + (user?.name || "User") + "&background=random"}
-                                alt="User Profile"
-                                className="w-10 h-10 rounded-full border-2 border-primary/20 object-cover shrink-0"
-                            />
-                            <div className={`
-                                overflow-hidden transition-all duration-300
-                                ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                            `}>
-                                <p className="text-sm font-bold truncate">{user?.name || "User"}</p>
-                                <p className="text-xs text-slate-500 truncate">{user?.tagline || "Productivity Enthusiast"}</p>
-                            </div>
+                <div className="px-4 w-full mt-auto relative">
+                    <button
+                        ref={profileTriggerRef}
+                        onClick={() => setProfileMenuOpen((open) => !open)}
+                        aria-expanded={profileMenuOpen}
+                        aria-haspopup="menu"
+                        aria-controls="profile-menu"
+                        className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                        <img
+                            src={user?.image || "https://ui-avatars.com/api/?name=" + (user?.name || "User") + "&background=random"}
+                            alt="User Profile"
+                            className="w-10 h-10 rounded-full border-2 border-primary/20 object-cover shrink-0"
+                        />
+                        <div className={[
+                            'overflow-hidden transition-all duration-300 flex-1 min-w-0',
+                            isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0',
+                        ].join(' ')}>
+                            <p className="text-sm font-bold truncate">{user?.name || "User"}</p>
+                            <p className="text-xs text-slate-500 truncate">{user?.tagline || "Productivity Enthusiast"}</p>
                         </div>
+                        <span className={[
+                            'material-symbols-outlined text-slate-400 transition-transform duration-200 shrink-0',
+                            profileMenuOpen ? 'rotate-180' : '',
+                            isExpanded ? 'opacity-100' : 'opacity-0 w-0',
+                        ].join(' ')}>
+                            expand_more
+                        </span>
+                    </button>
 
-                        <button
-                            onClick={handleLogout}
-                            className="p-2 text-slate-400 hover:text-red-500 transition-colors shrink-0"
-                            title="Logout"
-                            aria-label="Logout"
+                    {/* Profile Dropdown */}
+                    {profileMenuOpen && (
+                        <div
+                            ref={profileMenuRef}
+                            id="profile-menu"
+                            role="menu"
+                            className="absolute left-4 right-4 bottom-full mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50"
                         >
-                            <span className="material-symbols-outlined text-xl">logout</span>
-                        </button>
-                    </div>
+                            <Link
+                                href="/settings"
+                                onClick={() => setProfileMenuOpen(false)}
+                                role="menuitem"
+                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-lg">settings</span>
+                                Settings
+                            </Link>
+                            <Link
+                                href="/support"
+                                onClick={() => setProfileMenuOpen(false)}
+                                role="menuitem"
+                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-lg">help_outline</span>
+                                Support
+                            </Link>
+                            <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
+                            <button
+                                onClick={() => { setProfileMenuOpen(false); handleLogout(); }}
+                                role="menuitem"
+                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full text-left"
+                            >
+                                <span className="material-symbols-outlined text-lg">logout</span>
+                                Log Out
+                            </button>
+                        </div>
+                    )}
                 </div>
             </aside>
 
