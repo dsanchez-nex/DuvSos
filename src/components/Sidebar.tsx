@@ -199,8 +199,8 @@ export default function Sidebar() {
 
                 {/* Navigation */}
                 <nav className="flex-1 w-full px-4 space-y-1 overflow-y-auto">
-                    <Link href="/" className={getLinkClass('/')}
-                        ref={pathname === '/' ? firstFocusableRef : undefined}>
+                    <Link href="/dashboard" className={getLinkClass('/dashboard')}
+                        ref={pathname === '/dashboard' ? firstFocusableRef : undefined}>
                         <span className="material-symbols-outlined shrink-0">dashboard</span>
                         <span className={`
                             font-medium overflow-hidden whitespace-nowrap transition-all duration-300
