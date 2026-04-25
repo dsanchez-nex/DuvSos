@@ -34,6 +34,7 @@ model User {
   image     String?
   tagline   String?  @default("Productivity Enthusiast")
   theme     String   @default("system")
+  visualTheme String @default("classic")
   checklistAlertDays Int @default(3)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

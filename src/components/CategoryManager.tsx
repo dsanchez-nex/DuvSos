@@ -41,8 +41,8 @@ export default function CategoryManager({ categories, onAdd, onUpdate, onDelete,
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
+    <div className="delete-modal-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="category-modal bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">Manage Categories</h3>
@@ -54,7 +54,7 @@ export default function CategoryManager({ categories, onAdd, onUpdate, onDelete,
           {/* Add form */}
           <form onSubmit={handleAdd} className="space-y-3 mb-4">
             <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Category name..."
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-slate-400" />
+              className="cat-input w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-slate-400" />
             <div className="flex gap-2 items-center">
               <span className="text-xs text-slate-500 w-10">Color:</span>
               {presetColors.map(c => (
@@ -72,7 +72,7 @@ export default function CategoryManager({ categories, onAdd, onUpdate, onDelete,
               ))}
             </div>
             <button type="submit" disabled={!name.trim()}
-              className="w-full px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 font-medium text-sm disabled:opacity-50">
+              className="btn-neon w-full px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90 font-medium text-sm disabled:opacity-50">
               Add Category
             </button>
           </form>
@@ -82,7 +82,7 @@ export default function CategoryManager({ categories, onAdd, onUpdate, onDelete,
             {categories.length === 0 ? (
               <p className="text-center text-sm text-slate-400 py-4">No categories yet</p>
             ) : categories.map(cat => (
-              <div key={cat.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 group">
+              <div key={cat.id} className="cat-row flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 group">
                 <span className="material-symbols-outlined text-sm" style={{ color: cat.color }}>{cat.icon}</span>
                 {editingId === cat.id ? (
                   <input type="text" value={editName} onChange={e => setEditName(e.target.value)}
@@ -91,10 +91,10 @@ export default function CategoryManager({ categories, onAdd, onUpdate, onDelete,
                 ) : (
                   <span className="flex-1 text-sm text-slate-700 dark:text-slate-300">{cat.name}</span>
                 )}
-                <button onClick={() => startEdit(cat)} className="p-1 text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100">
+                <button onClick={() => startEdit(cat)} className="todo-action-btn p-1 text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100">
                   <span className="material-symbols-outlined text-sm">edit</span>
                 </button>
-                <button onClick={() => onDelete(cat.id)} className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100">
+                <button onClick={() => onDelete(cat.id)} className="todo-action-btn todo-action-btn-danger p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100">
                   <span className="material-symbols-outlined text-sm">delete</span>
                 </button>
               </div>

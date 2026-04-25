@@ -1,33 +1,28 @@
 @import "tailwindcss";
+@import "../styles/themes.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-.dark {
-  --background: #111827;
-  --foreground: #f3f4f6;
+  --background: var(--color-bg-base);
+  --foreground: var(--color-text-primary);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: 'Inter', sans-serif;
+  --color-background: var(--color-bg-base);
+  --color-foreground: var(--color-text-primary);
+  --color-primary: var(--color-primary);
+  --color-background-light: var(--color-bg-surface);
+  --color-background-dark: var(--color-bg-base);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
-
-  /* Custom colors from design */
-  --color-primary: #3b82f6;
-  --color-background-light: #f8f9fa;
-  --color-background-dark: #111827;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Inter', sans-serif;
+  background: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  letter-spacing: var(--tracking-body);
 }
 
 /* Custom Scrollbar */

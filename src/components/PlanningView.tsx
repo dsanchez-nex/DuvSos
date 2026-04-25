@@ -58,7 +58,7 @@ export default function PlanningView({
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setEditingId(null) }}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
+          className="flex items-center gap-2 px-4 py-2 btn-neon bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium"
         >
           {showForm ? 'Cancelar' : 'Nuevo Hábito'}
         </button>
@@ -70,9 +70,9 @@ export default function PlanningView({
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`habit-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === f
-                ? 'bg-primary text-white'
+                ? 'habit-filter-btn-active bg-primary text-white'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
           >
@@ -82,7 +82,7 @@ export default function PlanningView({
       </div>
 
       {showForm && (
-        <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+        <div className="habit-form-container bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Crear Nuevo Hábito</h3>
           <HabitForm
             onSubmit={async (data) => { await onCreate(data); setShowForm(false) }}
@@ -94,7 +94,7 @@ export default function PlanningView({
       )}
 
       {filteredHabits.length === 0 ? (
-        <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+        <div className="empty-state text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
           <p className="text-slate-500 dark:text-slate-400 text-lg">No hay hábitos en esta categoría</p>
         </div>
       ) : (
@@ -102,7 +102,7 @@ export default function PlanningView({
           {filteredHabits.map((habit) => (
             <div key={habit.id}>
               {editingId === habit.id ? (
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-l-4" style={{ borderLeftColor: habit.color }}>
+                <div className="dashboard-card bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-l-4" style={{ borderLeftColor: habit.color }}>
                   <HabitForm
                     initialData={habit}
                     onSubmit={(data) => handleUpdate(habit.id, data)}

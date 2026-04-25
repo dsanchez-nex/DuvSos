@@ -59,17 +59,17 @@ export default function HabitCard({
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-l-4 transition-all hover:shadow-lg" style={{ borderLeftColor: habit.color }}>
+    <div className="dashboard-card bg-white dark:bg-slate-800 rounded-xl shadow-md p-6 border-l-4 transition-all hover:shadow-lg" style={{ borderLeftColor: habit.color }}>
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">{habit.title}</h3>
             <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
               habit.state === 'Active'
-                ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
+                ? 'badge-active bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
                 : habit.state === 'Paused'
-                ? 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
-                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                ? 'badge-paused bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
+                : 'badge-archived bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
             }`}>
               {habit.state === 'Active' ? 'Activo' : habit.state === 'Paused' ? 'Pausado' : 'Archivado'}
             </span>
@@ -179,8 +179,8 @@ export default function HabitCard({
           return (
             <div
               key={date}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium ${isCompleted
-                  ? 'bg-green-500 text-white'
+              className={`day-cell w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium ${isCompleted
+                  ? 'day-cell-completed bg-green-500 text-white'
                   : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500'
                 }`}
               title={new Date(date).toLocaleDateString('es')}
@@ -200,8 +200,8 @@ export default function HabitCard({
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-sm w-full">
+        <div className="delete-modal-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="delete-modal bg-white dark:bg-slate-800 rounded-xl p-6 max-w-sm w-full">
             <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">¿Eliminar hábito?</h4>
             <p className="text-slate-600 dark:text-slate-400 mb-4">
               Esta acción no se puede deshacer. Se eliminará el hábito &quot;{habit.title}&quot; y todo su historial.
@@ -209,7 +209,7 @@ export default function HabitCard({
             <div className="flex gap-2">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium"
+                className="btn-outline flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors font-medium"
               >
                 Cancelar
               </button>
@@ -218,7 +218,7 @@ export default function HabitCard({
                   onDelete(habit.id)
                   setShowDeleteConfirm(false)
                 }}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                className="btn-danger flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
               >
                 Eliminar
               </button>

@@ -7,7 +7,7 @@ import { SidebarProvider, useSidebar } from '@/components/SidebarContext';
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100">
+      <div className="flex min-h-screen" style={{ background: 'var(--color-bg-base)', color: 'var(--color-text-primary)' }}>
         <Sidebar />
         <MainContent>{children}</MainContent>
       </div>
