@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useSidebar } from '@/components/SidebarContext';
@@ -10,10 +10,13 @@ export default function Sidebar() {
     const pathname = usePathname();
     const [user, setUser] = React.useState<any>(null);
     const [expiringCount, setExpiringCount] = React.useState(0);
+    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
+    const profileTriggerRef = useRef<HTMLButtonElement>(null);
 
     const {
         isExpanded,
-        isCollapsed,
+
         isMobileOverlayOpen,
         toggle,
         closeMobileOverlay,
@@ -51,13 +54,40 @@ export default function Sidebar() {
         }
     };
 
+    // Click outside to close profile menu
+    useEffect(() => {
+        if (!profileMenuOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (
+                profileMenuRef.current &&
+                !profileMenuRef.current.contains(e.target as Node) &&
+                profileTriggerRef.current &&
+                !profileTriggerRef.current.contains(e.target as Node)
+            ) {
+                setProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [profileMenuOpen]);
+
+    // Close profile menu on Escape
+    useEffect(() => {
+        if (!profileMenuOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                setProfileMenuOpen(false);
+                profileTriggerRef.current?.focus();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [profileMenuOpen]);
+
     const getLinkClass = (path: string) => {
         const isActive = pathname === path;
         const baseClass = "flex items-center gap-4 px-4 py-3 rounded-xl transition-all group whitespace-nowrap";
-        const activeClass = "bg-primary/10 text-primary";
-        const inactiveClass = "text-slate-500 hover:bg-primary/5 hover:text-primary";
-
-        return `${baseClass} ${isActive ? activeClass : inactiveClass}`;
+        return isActive ? `${baseClass} active` : `${baseClass} text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]`;
     };
 
     // Focus trap for mobile overlay
@@ -147,30 +177,30 @@ export default function Sidebar() {
                     aria-expanded={isExpanded || isMobileOverlayOpen}
                     aria-controls="main-sidebar"
                     aria-label={isExpanded || isMobileOverlayOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-                    className="absolute -right-3 top-8 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 hidden lg:flex"
+                    className="absolute -right-2.5 top-9 w-5 h-5 bg-slate-200/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center shadow-sm hover:bg-slate-300/90 dark:hover:bg-slate-600/90 hover:shadow-md focus:outline-none focus:ring-1 focus:ring-slate-400/50 hidden lg:flex backdrop-blur-sm transition-all"
                 >
-                    <span className="material-symbols-outlined text-sm">
+                    <span className="material-symbols-outlined text-xs">
                         {isExpanded ? 'chevron_left' : 'chevron_right'}
                     </span>
                 </button>
 
                 {/* Logo */}
                 <div className="px-6 mb-10 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary/20 shrink-0">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-lg shrink-0 sidebar-logo-bg">
                         <span className="material-symbols-outlined">grid_view</span>
                     </div>
-                    <span className={`
-                        text-xl font-bold text-slate-900 dark:text-white tracking-tight overflow-hidden whitespace-nowrap transition-all duration-300
-                        ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                    `}>
+                    <span className={[
+                        'text-xl font-bold tracking-tight overflow-hidden whitespace-nowrap transition-all duration-300',
+                        isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0',
+                    ].join(' ')} style={{ color: 'var(--color-text-primary)' }}>
                         DuvSos
                     </span>
                 </div>
 
                 {/* Navigation */}
                 <nav className="flex-1 w-full px-4 space-y-1 overflow-y-auto">
-                    <Link href="/" className={getLinkClass('/')}
-                        ref={pathname === '/' ? firstFocusableRef : undefined}>
+                    <Link href="/dashboard" className={getLinkClass('/dashboard')}
+                        ref={pathname === '/dashboard' ? firstFocusableRef : undefined}>
                         <span className="material-symbols-outlined shrink-0">dashboard</span>
                         <span className={`
                             font-medium overflow-hidden whitespace-nowrap transition-all duration-300
@@ -196,13 +226,6 @@ export default function Sidebar() {
                             </span>
                         )}
                     </Link>
-                    <Link href="/finances" className={getLinkClass('/finances')}>
-                        <span className="material-symbols-outlined shrink-0">payments</span>
-                        <span className={`
-                            font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-                            ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                        `}>Finances</span>
-                    </Link>
                     <Link href="/reminders" className={getLinkClass('/reminders')}>
                         <span className="material-symbols-outlined shrink-0">notifications_active</span>
                         <span className={`
@@ -218,51 +241,76 @@ export default function Sidebar() {
                         `}>Habits</span>
                     </Link>
 
-                    <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
-                        <Link href="/settings" className={getLinkClass('/settings')}>
-                            <span className="material-symbols-outlined shrink-0">settings</span>
-                            <span className={`
-                                font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-                                ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                            `}>Settings</span>
-                        </Link>
-                        <Link href="/support" className={getLinkClass('/support')}>
-                            <span className="material-symbols-outlined shrink-0">help_outline</span>
-                            <span className={`
-                                font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-                                ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                            `}>Support</span>
-                        </Link>
-                    </div>
                 </nav>
 
                 {/* User Profile */}
-                <div className="px-4 w-full mt-auto">
-                    <div className="flex items-center justify-between mt-6">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <img
-                                src={user?.image || "https://ui-avatars.com/api/?name=" + (user?.name || "User") + "&background=random"}
-                                alt="User Profile"
-                                className="w-10 h-10 rounded-full border-2 border-primary/20 object-cover shrink-0"
-                            />
-                            <div className={`
-                                overflow-hidden transition-all duration-300
-                                ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                            `}>
-                                <p className="text-sm font-bold truncate">{user?.name || "User"}</p>
-                                <p className="text-xs text-slate-500 truncate">{user?.tagline || "Productivity Enthusiast"}</p>
-                            </div>
+                <div className="px-4 w-full mt-auto relative">
+                    <button
+                        ref={profileTriggerRef}
+                        onClick={() => setProfileMenuOpen((open) => !open)}
+                        aria-expanded={profileMenuOpen}
+                        aria-haspopup="menu"
+                        aria-controls="profile-menu"
+                        className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                        <img
+                            src={user?.image || "https://ui-avatars.com/api/?name=" + (user?.name || "User") + "&background=random"}
+                            alt="User Profile"
+                            className="w-10 h-10 rounded-full border-2 border-primary/20 object-cover shrink-0"
+                        />
+                        <div className={[
+                            'overflow-hidden transition-all duration-300 flex-1 min-w-0',
+                            isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0',
+                        ].join(' ')}>
+                            <p className="text-sm font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>{user?.name || "User"}</p>
+                            <p className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{user?.tagline || "Productivity Enthusiast"}</p>
                         </div>
+                        <span className={[
+                            'material-symbols-outlined text-slate-400 transition-transform duration-200 shrink-0',
+                            profileMenuOpen ? 'rotate-180' : '',
+                            isExpanded ? 'opacity-100' : 'opacity-0 w-0',
+                        ].join(' ')}>
+                            expand_more
+                        </span>
+                    </button>
 
-                        <button
-                            onClick={handleLogout}
-                            className="p-2 text-slate-400 hover:text-red-500 transition-colors shrink-0"
-                            title="Logout"
-                            aria-label="Logout"
+                    {/* Profile Dropdown */}
+                    {profileMenuOpen && (
+                        <div
+                            ref={profileMenuRef}
+                            id="profile-menu"
+                            role="menu"
+                            className="absolute left-4 right-4 bottom-full mb-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50"
                         >
-                            <span className="material-symbols-outlined text-xl">logout</span>
-                        </button>
-                    </div>
+                            <Link
+                                href="/settings"
+                                onClick={() => setProfileMenuOpen(false)}
+                                role="menuitem"
+                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-lg">settings</span>
+                                Settings
+                            </Link>
+                            <Link
+                                href="/support"
+                                onClick={() => setProfileMenuOpen(false)}
+                                role="menuitem"
+                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-lg">help_outline</span>
+                                Support
+                            </Link>
+                            <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
+                            <button
+                                onClick={() => { setProfileMenuOpen(false); handleLogout(); }}
+                                role="menuitem"
+                                className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full text-left"
+                            >
+                                <span className="material-symbols-outlined text-lg">logout</span>
+                                Log Out
+                            </button>
+                        </div>
+                    )}
                 </div>
             </aside>
 

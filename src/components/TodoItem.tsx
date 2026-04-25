@@ -71,18 +71,18 @@ function TodoItem({
   return (
     <div className="space-y-2">
       <div
-        className={`flex items-start gap-3 p-4 rounded-xl transition-all ${
+        className={`todo-item-card flex items-start gap-3 p-4 rounded-xl transition-all ${
           todo.completed
-            ? 'bg-slate-50 dark:bg-slate-800/50'
+            ? 'todo-item-card-completed bg-slate-50 dark:bg-slate-800/50'
             : 'bg-white dark:bg-slate-800'
         } border border-slate-100 dark:border-slate-700 group hover:shadow-sm`}
       >
         {/* Checkbox */}
         <button
           onClick={() => onToggle(todo.id, !todo.completed)}
-          className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${
+          className={`todo-checkbox flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all mt-0.5 ${
             todo.completed
-              ? 'bg-green-500 border-green-500'
+              ? 'todo-checkbox-checked bg-green-500 border-green-500'
               : 'border-slate-300 dark:border-slate-600 hover:border-green-500'
           }`}
         >
@@ -119,13 +119,13 @@ function TodoItem({
           {/* Meta row */}
           <div className="flex flex-wrap items-center gap-2 text-xs">
             {/* Priority badge */}
-            <span className={`px-2 py-0.5 rounded-full font-medium ${getPriorityColor(todo.priority)} bg-slate-100 dark:bg-slate-700`}>
+            <span className={`badge-priority-${todo.priority} px-2 py-0.5 rounded-full font-medium ${getPriorityColor(todo.priority)} bg-slate-100 dark:bg-slate-700`}>
               {todo.priority}
             </span>
 
             {/* Due date */}
             {todo.dueDate && (
-              <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${todoIsOverdue ? 'text-red-600 bg-red-50 dark:bg-red-900/20' : 'text-slate-500 bg-slate-50 dark:bg-slate-700'}`}>
+              <span className={`badge-due flex items-center gap-1 px-2 py-0.5 rounded-full ${todoIsOverdue ? 'badge-overdue text-red-600 bg-red-50 dark:bg-red-900/20' : 'text-slate-500 bg-slate-50 dark:bg-slate-700'}`}>
                 <span className="material-symbols-outlined text-sm">event</span>
                 {formatDate(todo.dueDate)}
                 {todo.dueTime && ` ${todo.dueTime}`}
@@ -143,7 +143,7 @@ function TodoItem({
             {/* Category */}
             {todo.category && (
               <span
-                className="px-2 py-0.5 rounded-full text-white text-xs font-medium"
+                className="badge-category px-2 py-0.5 rounded-full text-white text-xs font-medium"
                 style={{ backgroundColor: todo.category.color }}
               >
                 {todo.category.name}
@@ -171,7 +171,7 @@ function TodoItem({
 
             {/* Overdue badge */}
             {todoIsOverdue && (
-              <span className="px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-medium">
+              <span className="badge-overdue px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-medium">
                 overdue
               </span>
             )}
@@ -182,21 +182,21 @@ function TodoItem({
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
             onClick={() => setShowAddSubtask(!showAddSubtask)}
-            className="p-2 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            className="todo-action-btn p-2 rounded-lg text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
             title="Add subtask"
           >
             <span className="material-symbols-outlined text-lg">add_task</span>
           </button>
           <button
             onClick={() => onEdit(todo)}
-            className="p-2 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+            className="todo-action-btn p-2 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
             title="Edit"
           >
             <span className="material-symbols-outlined text-lg">edit</span>
           </button>
           <button
             onClick={() => onDelete(todo.id)}
-            className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            className="todo-action-btn todo-action-btn-danger p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             title="Delete"
           >
             <span className="material-symbols-outlined text-lg">delete</span>
@@ -213,20 +213,20 @@ function TodoItem({
               value={newSubtaskTitle}
               onChange={(e) => setNewSubtaskTitle(e.target.value)}
               placeholder="Subtask title..."
-              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
+              className="rf-input flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm"
               autoFocus
             />
             <button
               type="submit"
               disabled={!newSubtaskTitle.trim()}
-              className="px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 disabled:opacity-50"
+              className="btn-neon px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 disabled:opacity-50"
             >
               Add
             </button>
             <button
               type="button"
               onClick={() => { setShowAddSubtask(false); setNewSubtaskTitle('') }}
-              className="px-3 py-2 text-slate-400 hover:text-slate-600 text-sm"
+              className="btn-outline px-3 py-2 text-slate-400 hover:text-slate-600 text-sm"
             >
               Cancel
             </button>
@@ -240,17 +240,17 @@ function TodoItem({
           {todo.subTasks.map((subtask) => (
             <div
               key={subtask.id}
-              className={`group flex items-center gap-3 p-3 rounded-lg ${
+              className={`subtask-card group flex items-center gap-3 p-3 rounded-lg ${
                 subtask.completed
-                  ? 'bg-slate-50 dark:bg-slate-800/30'
+                  ? 'subtask-card-completed bg-slate-50 dark:bg-slate-800/30'
                   : 'bg-slate-50 dark:bg-slate-800/50'
               } border border-slate-100 dark:border-slate-700`}
             >
               <button
                 onClick={() => onToggle(subtask.id, !subtask.completed)}
-                className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                className={`subtask-checkbox flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
                   subtask.completed
-                    ? 'bg-green-500 border-green-500'
+                    ? 'subtask-checkbox-checked bg-green-500 border-green-500'
                     : 'border-slate-300 dark:border-slate-600 hover:border-green-500'
                 }`}
               >
@@ -265,7 +265,7 @@ function TodoItem({
               </span>
               <button
                 onClick={() => onDelete(subtask.id)}
-                className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
+                className="todo-action-btn-danger p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100"
                 title="Delete subtask"
               >
                 <span className="material-symbols-outlined text-sm">delete</span>

@@ -74,6 +74,7 @@ export async function getCurrentUser() {
                 image: true,
                 tagline: true,
                 theme: true,
+                visualTheme: true,
                 checklistAlertDays: true,
             },
         })

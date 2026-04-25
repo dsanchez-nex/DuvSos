@@ -93,7 +93,7 @@ function UndoToast({ message, onUndo, onClose }: { message: string; onUndo: () =
   useEffect(() => { const t = setTimeout(onClose, 5000); return () => clearTimeout(t) }, [onClose])
   return (
     <div className="fixed bottom-6 right-6 z-50 animate-slide-in">
-      <div className="flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
+      <div className="checklist-undo-toast flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg border bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
         <span className="material-symbols-outlined text-lg text-amber-500">delete</span>
         <span className="text-sm font-medium text-slate-900 dark:text-white">{message}</span>
         <button onClick={onUndo} className="px-3 py-1 text-xs font-bold text-primary hover:bg-primary/10 rounded-lg">Undo</button>
@@ -113,7 +113,7 @@ function MiniDashboard({ checklist }: { checklist: Checklist }) {
   const prioConfig = priorityConfig[priority]
 
   return (
-    <div className="mb-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+    <div className="checklist-mini-dashboard mb-3 px-4 py-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {checklist.endDate && (
@@ -162,22 +162,22 @@ function InlineItemInput({ onAdd, checklistItems }: { onAdd: (title: string, pri
   return (
     <form onSubmit={handleSubmit} className="flex gap-2 mt-3">
       <input ref={inputRef} type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Add item..."
-        className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-slate-400" />
+        className="checklist-inline-input flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-slate-400" />
       <select value={priority} onChange={e => setPriority(e.target.value as Priority)}
-        className="px-2 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary">
+        className="checklist-inline-select px-2 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary">
         <option value="low">Low</option>
         <option value="normal">Normal</option>
         <option value="high">High</option>
       </select>
       <select value={parentId ?? ''} onChange={e => setParentId(e.target.value ? parseInt(e.target.value) : null)}
-        className="px-2 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary">
+        className="checklist-inline-select px-2 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-primary">
         <option value="">No parent</option>
         {checklistItems.map(item => (
           <option key={item.id} value={item.id}>{item.title.slice(0, 30)}</option>
         ))}
       </select>
       <button type="submit" disabled={!title.trim()}
-        className="px-3 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+        className="btn-neon px-3 py-2 text-sm bg-primary text-white rounded-lg hover:bg-primary/90 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
         Add
       </button>
     </form>
@@ -289,7 +289,7 @@ function ExpandedItems({ checklist: c, onToggleItem, onUpdateItem, onDeleteItem,
       {completedCount > 0 && mode !== 'history' && (
         <div className="flex items-center justify-end mb-2">
           <button onClick={() => setHideCompleted(!hideCompleted)}
-            className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+            className="checklist-hide-toggle flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
             <span className="material-symbols-outlined text-xs">{hideCompleted ? 'visibility' : 'visibility_off'}</span>
             {hideCompleted ? `Show completed (${completedCount})` : 'Hide completed'}
           </button>
@@ -310,24 +310,24 @@ function ExpandedItems({ checklist: c, onToggleItem, onUpdateItem, onDeleteItem,
               <div key={item.id}>
                 <div draggable={mode !== 'history'} onDragStart={() => { dragItem.current = idx }}
                   onDragEnter={() => { dragOver.current = idx }} onDragEnd={handleDragEnd} onDragOver={e => e.preventDefault()}
-                  className={`flex items-center gap-2.5 py-1.5 group/item ${item.completed ? 'opacity-60' : ''} ${blocked ? 'opacity-50' : ''}`}
+                  className={`checklist-item-row flex items-center gap-2.5 py-1.5 group/item ${item.completed ? 'opacity-60' : ''} ${blocked ? 'opacity-50' : ''}`}
                   style={{ paddingLeft: `${depth * 20}px` }}>
                   {mode !== 'history' && (
                     <span className="material-symbols-outlined text-slate-300 dark:text-slate-600 cursor-grab text-xs">drag_indicator</span>
                   )}
                   <button onClick={() => mode === 'active' && !blocked && onToggleItem(c.id, item)}
-                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${item.completed ? 'bg-primary border-primary' : (blocked || mode !== 'active') ? 'border-slate-300 dark:border-slate-600 cursor-not-allowed' : 'border-slate-300 dark:border-slate-600 hover:border-primary'}`}>
+                    className={`checklist-item-checkbox w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${item.completed ? 'checklist-item-checkbox-checked bg-primary border-primary' : (blocked || mode !== 'active') ? 'border-slate-300 dark:border-slate-600 cursor-not-allowed' : 'border-slate-300 dark:border-slate-600 hover:border-primary'}`}>
                     {item.completed && <span className="material-symbols-outlined text-white text-xs">check</span>}
                   </button>
                   {editingId === item.id && mode !== 'history' ? (
                     <div className="flex-1 flex gap-2">
                       <input type="text" value={editTitle} onChange={e => setEditTitle(e.target.value)} autoFocus
                         onKeyDown={e => { if (e.key === 'Enter') saveEdit(item); if (e.key === 'Escape') setEditingId(null) }}
-                        className="flex-1 text-sm px-1 py-0.5 bg-transparent border-b-2 border-primary focus:outline-none text-slate-900 dark:text-white" />
+                        className="checklist-item-input flex-1 text-sm px-1 py-0.5 bg-transparent border-b-2 border-primary focus:outline-none text-slate-900 dark:text-white" />
                       <input type="number" value={editEffort} onChange={e => setEditEffort(e.target.value ? parseInt(e.target.value) : '')} placeholder="Min"
-                        className="w-16 text-xs px-1 py-0.5 bg-transparent border-b border-slate-300 focus:outline-none text-slate-900 dark:text-white" />
+                        className="rf-input w-16 text-xs px-1 py-0.5 bg-transparent border-b border-slate-300 focus:outline-none text-slate-900 dark:text-white" />
                       <select value={editBlockedBy} onChange={e => setEditBlockedBy(e.target.value ? parseInt(e.target.value) : '')}
-                        className="text-xs px-1 py-0.5 bg-transparent border-b border-slate-300 focus:outline-none text-slate-900 dark:text-white">
+                        className="todo-select text-xs px-1 py-0.5 bg-transparent border-b border-slate-300 focus:outline-none text-slate-900 dark:text-white">
                         <option value="">No blocker</option>
                         {itemsList.filter(i => i.id !== item.id).map(i => (
                           <option key={i.id} value={i.id}>{i.title.slice(0, 20)}</option>
@@ -336,10 +336,10 @@ function ExpandedItems({ checklist: c, onToggleItem, onUpdateItem, onDeleteItem,
                     </div>
                   ) : (
                     <span onDoubleClick={() => mode !== 'history' && startEdit(item)}
-                      className={`flex-1 text-sm ${item.completed ? 'line-through text-slate-400' : blocked ? 'text-slate-400' : 'text-slate-900 dark:text-white'}`}>
+                      className={`flex-1 text-sm ${item.completed ? 'checklist-item-completed line-through text-slate-400' : blocked ? 'checklist-item-blocked text-slate-400' : 'text-slate-900 dark:text-white'}`}>
                       {item.title}
                       {blocked && (
-                        <span className="ml-2 text-xs text-amber-500 inline-flex items-center gap-0.5">
+                        <span className="checklist-item-blocked-badge ml-2 text-xs text-amber-500 inline-flex items-center gap-0.5">
                           <span className="material-symbols-outlined text-xs">lock</span>
                           Blocked
                         </span>
@@ -353,7 +353,7 @@ function ExpandedItems({ checklist: c, onToggleItem, onUpdateItem, onDeleteItem,
                     <>
                       <button onClick={() => { setNotesId(notesId === item.id ? null : item.id); setNotesValue(item.notes || '') }}
                         title={item.notes || 'Add notes'}
-                        className={`p-0.5 transition-opacity ${item.notes ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600 opacity-0 group-hover/item:opacity-100'}`}>
+                        className={`todo-action-btn p-0.5 transition-opacity ${item.notes ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600 opacity-0 group-hover/item:opacity-100'}`}>
                         <span className="material-symbols-outlined text-xs">sticky_note_2</span>
                       </button>
                       <button onClick={() => {
@@ -362,15 +362,15 @@ function ExpandedItems({ checklist: c, onToggleItem, onUpdateItem, onDeleteItem,
                         }} title={`Priority: ${item.priority}`}
                         className={`material-symbols-outlined text-xs cursor-pointer hover:scale-125 transition-transform ${prio.class}`}>{prio.icon}</button>
                       <button onClick={() => startEdit(item)}
-                        className="p-0.5 text-slate-300 hover:text-primary opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        className="todo-action-btn p-0.5 text-slate-300 hover:text-primary opacity-0 group-hover/item:opacity-100 transition-opacity">
                         <span className="material-symbols-outlined text-sm">edit</span>
                       </button>
                       <button onClick={() => onCreateReminder(c.id, item)} title="Set reminder"
-                        className="p-0.5 text-slate-300 hover:text-amber-500 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        className="todo-action-btn p-0.5 text-slate-300 hover:text-amber-500 opacity-0 group-hover/item:opacity-100 transition-opacity">
                         <span className="material-symbols-outlined text-sm">notifications</span>
                       </button>
                       <button onClick={() => handleDeleteItem(item.id)}
-                        className="p-0.5 text-slate-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        className="todo-action-btn todo-action-btn-danger p-0.5 text-slate-300 hover:text-red-500 opacity-0 group-hover/item:opacity-100 transition-opacity">
                         <span className="material-symbols-outlined text-sm">close</span>
                       </button>
                     </>
@@ -380,12 +380,12 @@ function ExpandedItems({ checklist: c, onToggleItem, onUpdateItem, onDeleteItem,
                 {notesId === item.id && mode !== 'history' && (
                   <div className="ml-10 mt-1 mb-2" style={{ marginLeft: `${depth * 20 + 40}px` }}>
                     <textarea value={notesValue} onChange={e => setNotesValue(e.target.value)} rows={2} placeholder="Add notes..."
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
+                      className="checklist-notes-area w-full px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
                     <div className="flex gap-2 mt-1">
                       <button onClick={() => { onUpdateItem(c.id, item, { notes: notesValue || null }); setNotesId(null) }}
-                        className="px-3 py-1 text-xs bg-primary text-white rounded-lg hover:bg-primary/90">Save</button>
+                        className="btn-neon px-3 py-1 text-xs bg-primary text-white rounded-lg hover:bg-primary/90">Save</button>
                       <button onClick={() => setNotesId(null)}
-                        className="px-3 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Cancel</button>
+                        className="btn-outline px-3 py-1 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">Cancel</button>
                     </div>
                   </div>
                 )}
@@ -470,16 +470,17 @@ export default function ChecklistList({
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Checklists</h2>
           <p className="text-slate-500 dark:text-slate-400 mt-1">{checklists.length} checklists</p>
         </div>
-        <button onClick={onNew} className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-medium">
+        <button onClick={onNew} className="btn-neon flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl hover:bg-primary/90 transition-colors font-medium">
           <span className="material-symbols-outlined text-sm">add</span>
           New Checklist
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700 pb-1">
+      <div className="checklist-tabs flex gap-1 border-b border-slate-200 dark:border-slate-700 pb-1">
         {tabLabels.map(t => (
           <button key={t.value} onClick={() => onTabChange(t.value)}
+            data-active={tab === t.value}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${tab === t.value ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
             {t.label}
           </button>
@@ -490,7 +491,7 @@ export default function ChecklistList({
       <div className="relative">
         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
         <input type="text" value={search} onChange={e => onSearchChange(e.target.value)} placeholder="Search checklists..."
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-slate-400 text-sm" />
+          className="checklist-search w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary placeholder:text-slate-400 text-sm" />
       </div>
 
       {/* Filters + Sort */}
@@ -498,13 +499,13 @@ export default function ChecklistList({
         <div className="flex flex-wrap items-center gap-2">
           {filterOptions.map(f => (
             <button key={f.value} onClick={() => onFilterChange(f.value)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f.value ? 'bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
+              className={`checklist-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === f.value ? 'checklist-filter-btn-active bg-primary text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
               {f.label}
             </button>
           ))}
           {categories.length > 0 && (
             <select value={categoryFilter ?? ''} onChange={e => onCategoryFilterChange(e.target.value ? parseInt(e.target.value) : null)}
-              className="px-3 py-1.5 rounded-lg text-sm bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-0 focus:ring-2 focus:ring-primary">
+              className="checklist-select px-3 py-1.5 rounded-lg text-sm bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-0 focus:ring-2 focus:ring-primary">
               <option value="">All categories</option>
               {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
             </select>
@@ -512,7 +513,7 @@ export default function ChecklistList({
           <div className="ml-auto flex items-center gap-1">
             <span className="material-symbols-outlined text-xs text-slate-400">sort</span>
             <select value={sort} onChange={e => onSortChange(e.target.value as SortOption)}
-              className="px-2 py-1.5 rounded-lg text-sm bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-0 focus:ring-2 focus:ring-primary">
+              className="checklist-select px-2 py-1.5 rounded-lg text-sm bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-0 focus:ring-2 focus:ring-primary">
               {sortOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
@@ -521,7 +522,7 @@ export default function ChecklistList({
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+        <div className="empty-state text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
           <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 mb-4 block">fact_check</span>
           <p className="text-slate-500 dark:text-slate-400 text-lg">{search ? 'No results' : tab === 'templates' ? 'No templates yet' : tab === 'history' ? 'No history yet' : 'No checklists yet'}</p>
           <p className="text-slate-400 dark:text-slate-500 mt-1">{search ? 'Try a different search' : tab === 'templates' ? 'Create a template to get started' : tab === 'history' ? 'Complete and archive checklists to see them here' : 'Create one to get started'}</p>
@@ -536,7 +537,7 @@ export default function ChecklistList({
             const isHistory = tab === 'history'
             return (
               <div key={c.id}
-                className={`bg-white dark:bg-slate-800 rounded-xl border transition-all ${isExpanded ? 'border-primary/40 shadow-sm' : 'border-slate-200 dark:border-slate-700'}`}>
+                className={`checklist-card bg-white dark:bg-slate-800 rounded-xl border transition-all ${isExpanded ? 'checklist-card-expanded border-primary/40 shadow-sm' : 'border-slate-200 dark:border-slate-700'}`}>
                 <div className="p-4 cursor-pointer group" onClick={() => onToggleExpand(c.id)}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
@@ -549,48 +550,48 @@ export default function ChecklistList({
                         )}
                         <h3 className="font-semibold text-slate-900 dark:text-white truncate">{c.title}</h3>
                         {isTemplate && c.version && (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                          <span className="badge-version px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
                             v{c.version}
                           </span>
                         )}
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${status.class}`}>{status.label}</span>
+                        <span className={`checklist-status-badge px-2 py-0.5 rounded-full text-xs font-medium ${status.class}`}>{status.label}</span>
                       </div>
                       {c.description && <p className="text-sm text-slate-500 dark:text-slate-400 truncate ml-6">{c.description}</p>}
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                       {isTemplate && onInstantiateTemplate && (
                         <button onClick={e => { e.stopPropagation(); onInstantiateTemplate(c) }} title="Create instance"
-                          className="p-1.5 text-slate-400 hover:text-green-500 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                          className="checklist-action-btn checklist-action-btn-green p-1.5 text-slate-400 hover:text-green-500 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
                           <span className="material-symbols-outlined text-sm">play_arrow</span>
                         </button>
                       )}
                       {!isHistory && (
                         <button onClick={e => { e.stopPropagation(); onEdit(c) }} title="Edit"
-                          className="p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-primary/10 transition-colors">
+                          className="checklist-action-btn p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-primary/10 transition-colors">
                           <span className="material-symbols-outlined text-lg">edit</span>
                         </button>
                       )}
                       {!isTemplate && !isHistory && (
                         <button onClick={e => { e.stopPropagation(); onDuplicate(c.id) }} title="Duplicate"
-                          className="p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                          className="checklist-action-btn p-1.5 text-slate-400 hover:text-primary rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
                           <span className="material-symbols-outlined text-sm">content_copy</span>
                         </button>
                       )}
                       {!isTemplate && !isHistory && onArchive && (
                         <button onClick={e => { e.stopPropagation(); onArchive(c.id) }} title="Archive"
-                          className="p-1.5 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+                          className="checklist-action-btn checklist-action-btn-amber p-1.5 text-slate-400 hover:text-amber-500 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
                           <span className="material-symbols-outlined text-sm">archive</span>
                         </button>
                       )}
                       <button onClick={e => { e.stopPropagation(); handleDelete(c.id) }} title="Delete"
-                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                        className="checklist-action-btn checklist-action-btn-danger p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                         <span className="material-symbols-outlined text-sm">delete</span>
                       </button>
                     </div>
                   </div>
                   <div className="mt-3 flex items-center gap-3 ml-6">
-                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: c.color }} />
+                    <div className="checklist-progress-track flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className="checklist-progress-fill h-full rounded-full transition-all" style={{ width: `${progress}%`, backgroundColor: c.color }} />
                     </div>
                     <span className="text-xs font-medium text-slate-500 dark:text-slate-400 w-16 text-right">
                        {(() => {
