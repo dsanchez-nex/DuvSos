@@ -77,7 +77,7 @@ export default function ArchiveView({ habits, loading }: ArchiveViewProps) {
         <select
           value={selectedMonth}
           onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-          className="px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          className="rf-select px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {months.map((m) => (
             <option key={m.value} value={m.value}>{m.label}</option>
@@ -86,7 +86,7 @@ export default function ArchiveView({ habits, loading }: ArchiveViewProps) {
         <select
           value={selectedYear}
           onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-          className="px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+          className="rf-select px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {years.map((y) => (
             <option key={y} value={y}>{y}</option>
@@ -96,15 +96,15 @@ export default function ArchiveView({ habits, loading }: ArchiveViewProps) {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="summary-card dashboard-card bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
           <p className="text-sm text-slate-500 dark:text-slate-400">Total Completaciones</p>
           <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{totalCompletions}</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="summary-card dashboard-card bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
           <p className="text-sm text-slate-500 dark:text-slate-400">Hábitos Activos</p>
           <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">{habits.filter((h) => h.state === 'Active').length}</p>
         </div>
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="summary-card dashboard-card bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
           <p className="text-sm text-slate-500 dark:text-slate-400">Mejor Racha</p>
           <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
             {Math.max(0, ...periodData.map((d) => d.streak))}
@@ -116,14 +116,14 @@ export default function ArchiveView({ habits, loading }: ArchiveViewProps) {
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Detalle por Hábito</h3>
         {periodData.length === 0 ? (
-          <div className="text-center py-8 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+          <div className="empty-state text-center py-8 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
             <p className="text-slate-500 dark:text-slate-400">No hay hábitos para mostrar</p>
           </div>
         ) : (
           periodData.map(({ habit, completions, streak, rate }) => (
             <div
               key={habit.id}
-              className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4"
+              className="archive-habit-card dashboard-card bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4"
               style={{ borderLeftColor: habit.color }}
             >
               <div className="flex justify-between items-start">
@@ -155,7 +155,7 @@ export default function ArchiveView({ habits, loading }: ArchiveViewProps) {
                       return (
                         <div
                           key={i}
-                          className="w-3 h-3 rounded-sm"
+                          className="completion-dot w-3 h-3 rounded-sm"
                           style={{ backgroundColor: habit.color }}
                           title={new Date(completion.date).toLocaleDateString('es')}
                         />

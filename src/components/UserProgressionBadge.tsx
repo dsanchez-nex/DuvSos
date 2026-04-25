@@ -25,18 +25,18 @@ export default function UserProgressionBadge() {
   const progress = Math.min(100, (progression.totalXP / nextLevelXP) * 100)
 
   return (
-    <div className="px-3 py-2 bg-white/10 dark:bg-white/5 rounded-lg backdrop-blur-sm">
+    <div className="progression-badge px-3 py-2 bg-white/10 dark:bg-white/5 rounded-lg backdrop-blur-sm">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center text-white text-sm font-bold">
+        <div className="level-circle w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center text-white text-sm font-bold">
           {progression.currentLevel}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-slate-700 dark:text-slate-300 truncate">
             {levelName}
           </p>
-          <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mt-1">
+          <div className="xp-track h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mt-1">
             <div
-              className="h-full bg-primary rounded-full transition-all"
+              className="xp-fill h-full bg-primary rounded-full transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>

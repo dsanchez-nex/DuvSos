@@ -96,17 +96,17 @@ export default function ActionView({ habits, onToggleCompletion, loading }: Acti
           {xpPopups.map((popup) => (
             <div
               key={popup.id}
-              className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-primary/20 p-4 animate-bounce"
+              className="xp-popup bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-primary/20 p-4"
             >
               {popup.leveledUp && (
                 <div className="text-center mb-2">
                   <span className="text-2xl">🎉</span>
-                  <p className="text-lg font-bold text-primary">¡Subiste de nivel!</p>
+                  <p className="level-up-text text-lg font-bold text-primary">¡Subiste de nivel!</p>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Nivel {popup.newLevel} - {getLevelName(popup.newLevel)}</p>
                 </div>
               )}
               {popup.milestone && (
-                <p className="text-sm text-amber-600 dark:text-amber-400 font-medium text-center">
+                <p className="milestone-text text-sm text-amber-600 dark:text-amber-400 font-medium text-center">
                   🏆 {popup.milestone}
                 </p>
               )}
@@ -132,12 +132,12 @@ export default function ActionView({ habits, onToggleCompletion, loading }: Acti
 
       {/* Summary */}
       {habitsWithMetrics.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="dashboard-card bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-4">
             <div className="flex-1">
-              <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div className="habit-progress-track h-3 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-green-500 rounded-full transition-all duration-500"
+                  className="habit-progress-fill h-full bg-green-500 rounded-full transition-all duration-500"
                   style={{
                     width: `${habitsWithMetrics.length > 0 ? (completedCount / habitsWithMetrics.length) * 100 : 0}%`,
                   }}
@@ -152,7 +152,7 @@ export default function ActionView({ habits, onToggleCompletion, loading }: Acti
       )}
 
       {habitsWithMetrics.length === 0 ? (
-        <div className="text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+        <div className="empty-state text-center py-16 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
           <p className="text-slate-500 dark:text-slate-400 text-lg">No hay hábitos activos para hoy</p>
           <p className="text-slate-400 dark:text-slate-500 mt-1">Crea hábitos en la vista de planificación</p>
         </div>
@@ -167,8 +167,8 @@ export default function ActionView({ habits, onToggleCompletion, loading }: Acti
             return (
               <div
                 key={habit.id}
-                className={`bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4 transition-all hover:shadow-md ${
-                  isCompleted ? 'opacity-75' : ''
+                className={`action-row bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border-l-4 transition-all hover:shadow-md ${
+                  isCompleted ? 'action-row-completed opacity-75' : ''
                 }`}
                 style={{ borderLeftColor: habit.color }}
               >
@@ -178,8 +178,8 @@ export default function ActionView({ habits, onToggleCompletion, loading }: Acti
                     disabled={completingId === habit.id}
                     className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
                       isCompleted
-                        ? 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400'
-                        : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600'
+                        ? 'toggle-btn-completed bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400'
+                        : 'toggle-btn-pending bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600'
                     }`}
                   >
                     {completingId === habit.id ? (
@@ -231,7 +231,7 @@ export default function ActionView({ habits, onToggleCompletion, loading }: Acti
 
       {/* End of day summary */}
       {habitsWithMetrics.length > 0 && (
-        <div className="bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 rounded-xl p-4 border border-primary/20">
+        <div className="day-summary dashboard-card bg-gradient-to-r from-primary/5 to-primary/10 dark:from-primary/10 dark:to-primary/20 rounded-xl p-4 border border-primary/20">
           <p className="text-sm text-slate-700 dark:text-slate-300">
             {completedCount === habitsWithMetrics.length
               ? '🎉 Excelente! Completaste todos tus hábitos hoy.'

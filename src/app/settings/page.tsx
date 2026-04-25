@@ -25,6 +25,15 @@ export default function SettingsPage() {
         }
         return 'system';
     });
+    const [visualTheme, setVisualTheme] = useState<'classic' | 'retrofuturista'>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('app-visual-theme');
+            if (saved && ['classic', 'retrofuturista'].includes(saved)) {
+                return saved as 'classic' | 'retrofuturista';
+            }
+        }
+        return 'classic';
+    });
     const [cardLimit, setCardLimit] = useState(4);
     const [checklistAlertDays, setChecklistAlertDays] = useState(3);
     const [isDirty, setIsDirty] = useState(false);
@@ -52,6 +61,9 @@ export default function SettingsPage() {
                     }
                     if (data.user.checklistAlertDays !== undefined) {
                         setChecklistAlertDays(data.user.checklistAlertDays);
+                    }
+                    if (data.user.visualTheme) {
+                        setVisualTheme(data.user.visualTheme as 'classic' | 'retrofuturista');
                     }
                 } else {
                     window.location.href = '/login';
@@ -127,9 +139,21 @@ export default function SettingsPage() {
         setIsDirty(true);
     };
 
+    const applyVisualTheme = (vt: 'classic' | 'retrofuturista') => {
+        const root = document.documentElement;
+        root.setAttribute('data-visual-theme', vt);
+    };
+
+    const changeVisualTheme = (newVisual: 'classic' | 'retrofuturista') => {
+        setVisualTheme(newVisual);
+        applyVisualTheme(newVisual);
+        setIsDirty(true);
+    };
+
     const handleSave = async () => {
         try {
             localStorage.setItem('app-theme', theme);
+            localStorage.setItem('app-visual-theme', visualTheme);
             localStorage.setItem('dashboard-card-limit', cardLimit.toString());
 
             if (user) {
@@ -141,6 +165,7 @@ export default function SettingsPage() {
                         email: user.email,
                         tagline: user.tagline,
                         theme: theme,
+                        visualTheme: visualTheme,
                         checklistAlertDays: checklistAlertDays,
                     }),
                 });
@@ -403,21 +428,40 @@ export default function SettingsPage() {
                                 <span className="material-symbols-outlined text-primary">palette</span>
                                 <h2 className="text-lg font-semibold">Theme &amp; Appearance</h2>
                             </div>
-                            <div className="space-y-4">
-                                <label className="text-sm font-medium text-slate-600 dark:text-slate-400">Display Mode</label>
-                                <div className="grid grid-cols-3 gap-4">
-                                    {(['light', 'dark', 'system'] as const).map((m) => (
-                                        <button
-                                            key={m}
-                                            onClick={() => changeTheme(m)}
-                                            className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl transition-all ${theme === m ? 'border-primary bg-primary/5' : 'border-primary/10 hover:border-primary/30'}`}
-                                        >
-                                            <span className={`material-symbols-outlined ${theme === m ? 'text-primary' : 'text-slate-400'}`}>
-                                                {m === 'light' ? 'light_mode' : m === 'dark' ? 'dark_mode' : 'settings_brightness'}
-                                            </span>
-                                            <span className="text-sm font-medium capitalize">{m}</span>
-                                        </button>
-                                    ))}
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-3">Visual Style</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {(['classic', 'retrofuturista'] as const).map((v) => (
+                                            <button
+                                                key={v}
+                                                onClick={() => changeVisualTheme(v)}
+                                                className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl transition-all ${visualTheme === v ? 'border-primary bg-primary/5' : 'border-primary/10 hover:border-primary/30'}`}
+                                            >
+                                                <span className={`material-symbols-outlined ${visualTheme === v ? 'text-primary' : 'text-slate-400'}`}>
+                                                    {v === 'classic' ? 'dashboard' : 'rocket_launch'}
+                                                </span>
+                                                <span className="text-sm font-medium capitalize">{v === 'retrofuturista' ? 'Retrofuturista' : 'Classic'}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-3">Display Mode</label>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {(['light', 'dark', 'system'] as const).map((m) => (
+                                            <button
+                                                key={m}
+                                                onClick={() => changeTheme(m)}
+                                                className={`flex flex-col items-center gap-2 p-4 border-2 rounded-xl transition-all ${theme === m ? 'border-primary bg-primary/5' : 'border-primary/10 hover:border-primary/30'}`}
+                                            >
+                                                <span className={`material-symbols-outlined ${theme === m ? 'text-primary' : 'text-slate-400'}`}>
+                                                    {m === 'light' ? 'light_mode' : m === 'dark' ? 'dark_mode' : 'settings_brightness'}
+                                                </span>
+                                                <span className="text-sm font-medium capitalize">{m}</span>
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </SettingCard>

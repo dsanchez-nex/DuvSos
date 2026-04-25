@@ -124,11 +124,12 @@ export default function HabitsPage() {
             <div className="max-w-4xl mx-auto">
                 <div className="bg-white dark:bg-background-dark/40 border border-primary/10 rounded-2xl p-6 shadow-sm">
                     {/* Tabs */}
-                    <div className="flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl">
+                    <div className="habits-tabs flex gap-1 mb-6 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-xl">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
+                                data-active={activeTab === tab.id}
                                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                                     activeTab === tab.id
                                         ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
@@ -146,7 +147,7 @@ export default function HabitsPage() {
                             <p className="text-red-500">{error}</p>
                             <button
                                 onClick={fetchHabits}
-                                className="mt-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
+                                className="mt-2 px-4 py-2 btn-neon bg-primary text-white rounded-lg hover:bg-primary/90"
                             >
                                 Reintentar
                             </button>

@@ -37,7 +37,7 @@ export default function EnergySelector({ onLog }: EnergySelectorProps) {
 
   if (submitted) {
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+      <div className="energy-selector dashboard-card bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
         <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
           Nivel de energía registrado: {levels.find((l) => l.value === selected)?.emoji} {levels.find((l) => l.value === selected)?.label}
         </p>
@@ -46,16 +46,16 @@ export default function EnergySelector({ onLog }: EnergySelectorProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
+    <div className="energy-selector dashboard-card bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-700">
       <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">¿Cómo te sientes hoy?</h4>
       <div className="flex justify-between gap-1">
         {levels.map((level) => (
           <button
             key={level.value}
             onClick={() => handleSelect(level.value)}
-            className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
+            className={`energy-btn flex-1 flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
               selected === level.value
-                ? 'bg-slate-100 dark:bg-slate-700 ring-2 ring-primary'
+                ? 'energy-btn-selected bg-slate-100 dark:bg-slate-700 ring-2 ring-primary'
                 : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
             }`}
           >

@@ -87,10 +87,7 @@ export default function Sidebar() {
     const getLinkClass = (path: string) => {
         const isActive = pathname === path;
         const baseClass = "flex items-center gap-4 px-4 py-3 rounded-xl transition-all group whitespace-nowrap";
-        const activeClass = "bg-primary/10 text-primary";
-        const inactiveClass = "text-slate-500 hover:bg-primary/5 hover:text-primary";
-
-        return `${baseClass} ${isActive ? activeClass : inactiveClass}`;
+        return isActive ? `${baseClass} active` : `${baseClass} text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]`;
     };
 
     // Focus trap for mobile overlay
@@ -180,22 +177,22 @@ export default function Sidebar() {
                     aria-expanded={isExpanded || isMobileOverlayOpen}
                     aria-controls="main-sidebar"
                     aria-label={isExpanded || isMobileOverlayOpen ? 'Collapse sidebar' : 'Expand sidebar'}
-                    className="absolute -right-3 top-8 w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 hidden lg:flex"
+                    className="absolute -right-2.5 top-9 w-5 h-5 bg-slate-200/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center shadow-sm hover:bg-slate-300/90 dark:hover:bg-slate-600/90 hover:shadow-md focus:outline-none focus:ring-1 focus:ring-slate-400/50 hidden lg:flex backdrop-blur-sm transition-all"
                 >
-                    <span className="material-symbols-outlined text-sm">
+                    <span className="material-symbols-outlined text-xs">
                         {isExpanded ? 'chevron_left' : 'chevron_right'}
                     </span>
                 </button>
 
                 {/* Logo */}
                 <div className="px-6 mb-10 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary/20 shrink-0">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-lg shrink-0 sidebar-logo-bg">
                         <span className="material-symbols-outlined">grid_view</span>
                     </div>
-                    <span className={`
-                        text-xl font-bold text-slate-900 dark:text-white tracking-tight overflow-hidden whitespace-nowrap transition-all duration-300
-                        ${isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0'}
-                    `}>
+                    <span className={[
+                        'text-xl font-bold tracking-tight overflow-hidden whitespace-nowrap transition-all duration-300',
+                        isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0',
+                    ].join(' ')} style={{ color: 'var(--color-text-primary)' }}>
                         DuvSos
                     </span>
                 </div>
@@ -265,8 +262,8 @@ export default function Sidebar() {
                             'overflow-hidden transition-all duration-300 flex-1 min-w-0',
                             isExpanded ? 'opacity-100 w-auto' : 'opacity-0 w-0',
                         ].join(' ')}>
-                            <p className="text-sm font-bold truncate">{user?.name || "User"}</p>
-                            <p className="text-xs text-slate-500 truncate">{user?.tagline || "Productivity Enthusiast"}</p>
+                            <p className="text-sm font-bold truncate" style={{ color: 'var(--color-text-primary)' }}>{user?.name || "User"}</p>
+                            <p className="text-xs truncate" style={{ color: 'var(--color-text-secondary)' }}>{user?.tagline || "Productivity Enthusiast"}</p>
                         </div>
                         <span className={[
                             'material-symbols-outlined text-slate-400 transition-transform duration-200 shrink-0',
