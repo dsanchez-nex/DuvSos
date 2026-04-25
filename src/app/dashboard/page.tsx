@@ -11,28 +11,9 @@ const MODULE_COLORS: Record<string, string> = {
   milestone: '#8b5cf6',
 }
 
-const MODULE_LABELS: Record<string, string> = {
-  reminder: 'Reminder',
-  habit: 'Habit',
-  checklist: 'Checklist',
-  todo: 'ToDo',
-  milestone: 'Milestone',
-}
-
 // ─── Types ───
 
-interface CriticalTask {
-  id: string
-  module: 'todo' | 'reminder'
-  title: string
-  dueDate: string
-  priority: string
-  completed: boolean
-  sourceId?: number
-  sourceModule?: string
-}
-
-interface CriticalHabit {
+interface HabitTracker {
   id: number
   title: string
   color: string
@@ -42,12 +23,33 @@ interface CriticalHabit {
   goalValue: number
 }
 
-interface UpcomingMilestone {
+interface ChecklistItem {
   id: number
   title: string
-  date: string
-  color: string
-  daysRemaining: number
+  completed: boolean
+  priority: string
+  checklistId: number
+  checklistTitle: string
+  checklistColor: string
+}
+
+interface TodoItem {
+  id: number
+  title: string
+  completed: boolean
+  priority: string
+  dueDate?: string
+  category?: { name?: string; color?: string }
+}
+
+interface UpcomingReminder {
+  id: number | string
+  title: string
+  dueDate: string
+  priority: string
+  daysUntil: number
+  sourceModule?: string
+  sourceId?: number
 }
 
 interface DayData {
@@ -57,9 +59,6 @@ interface DayData {
 
 interface WorkloadDay {
   score: number
-  tasks: number
-  habits: number
-  reminders: number
   overloaded: boolean
 }
 
@@ -68,7 +67,6 @@ interface DashboardMetrics {
   activeProjects: number
   pendingTasks: number
   weeklyCompliance: number
-  lastUpdated: string
 }
 
 interface LowProgressItem {
@@ -80,6 +78,12 @@ interface LowProgressItem {
   trend: 'improving' | 'stable' | 'declining'
 }
 
+const PRIORITY_ORDER: Record<string, number> = { high: 0, normal: 1, low: 2 }
+
+function sortByPriority<T extends { priority: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 1) - (PRIORITY_ORDER[b.priority] ?? 1))
+}
+
 // ─── Component ───
 
 export default function DashboardPage() {
@@ -88,9 +92,10 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
 
   // Data states
-  const [criticalTasks, setCriticalTasks] = useState<CriticalTask[]>([])
-  const [criticalHabits, setCriticalHabits] = useState<CriticalHabit[]>([])
-  const [milestones, setMilestones] = useState<UpcomingMilestone[]>([])
+  const [habits, setHabits] = useState<HabitTracker[]>([])
+  const [checklists, setChecklists] = useState<ChecklistItem[]>([])
+  const [todos, setTodos] = useState<TodoItem[]>([])
+  const [upcomingReminders, setUpcomingReminders] = useState<UpcomingReminder[]>([])
   const [calendarData, setCalendarData] = useState<Record<string, DayData>>({})
   const [workloadData, setWorkloadData] = useState<Record<string, WorkloadDay>>({})
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
@@ -105,16 +110,70 @@ export default function DashboardPage() {
 
   // ─── Fetchers ───
 
-  const fetchUrgency = useCallback(async (dateStr: string) => {
+  const fetchHabits = useCallback(async () => {
+    const today = new Date().toISOString().split('T')[0]
     try {
-      const [tasksRes, habitsRes, mileRes] = await Promise.all([
-        fetch(`/api/dashboard/critical-tasks?date=${dateStr}`),
-        fetch(`/api/dashboard/critical-habits?date=${dateStr}`),
-        fetch('/api/dashboard/milestones'),
+      const res = await fetch(`/api/dashboard/critical-habits?date=${today}`)
+      if (res.ok) setHabits(await res.json())
+    } catch (err) {
+      console.error(err)
+    }
+  }, [])
+
+  const fetchChecklistsAndTodos = useCallback(async () => {
+    try {
+      const [clRes, tdRes] = await Promise.all([
+        fetch('/api/checklists'),
+        fetch('/api/todos'),
       ])
-      if (tasksRes.ok) setCriticalTasks(await tasksRes.json())
-      if (habitsRes.ok) setCriticalHabits(await habitsRes.json())
-      if (mileRes.ok) setMilestones(await mileRes.json())
+
+      if (clRes.ok) {
+        const rawChecklists = await clRes.json()
+        // Flatten checklist items and add checklist info
+        const items: ChecklistItem[] = []
+        for (const cl of rawChecklists) {
+          if (cl.items && Array.isArray(cl.items)) {
+            for (const item of cl.items) {
+              if (!item.completed) {
+                items.push({
+                  id: item.id,
+                  title: item.title,
+                  completed: item.completed,
+                  priority: item.priority || 'normal',
+                  checklistId: cl.id,
+                  checklistTitle: cl.title,
+                  checklistColor: cl.color || MODULE_COLORS.checklist,
+                })
+              }
+            }
+          }
+        }
+        setChecklists(sortByPriority(items))
+      }
+
+      if (tdRes.ok) {
+        const rawTodos = await tdRes.json()
+        const activeTodos = (rawTodos || [])
+          .filter((t: TodoItem) => !t.completed)
+          .map((t: TodoItem) => ({
+            id: t.id,
+            title: t.title,
+            completed: t.completed,
+            priority: t.priority || 'normal',
+            dueDate: t.dueDate,
+            category: t.category,
+          }))
+        setTodos(sortByPriority(activeTodos))
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }, [])
+
+  const fetchUpcomingReminders = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dashboard/upcoming-reminders')
+      if (res.ok) setUpcomingReminders(await res.json())
     } catch (err) {
       console.error(err)
     }
@@ -150,16 +209,12 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
+    fetchHabits()
+    fetchChecklistsAndTodos()
+    fetchUpcomingReminders()
     fetchCalendar()
-  }, [fetchCalendar])
-
-  useEffect(() => {
-    fetchUrgency(selectedDateStr)
-  }, [selectedDateStr, fetchUrgency])
-
-  useEffect(() => {
     fetchAnalytics()
-  }, [fetchAnalytics])
+  }, [fetchHabits, fetchChecklistsAndTodos, fetchUpcomingReminders, fetchCalendar, fetchAnalytics])
 
   // ─── Actions ───
 
@@ -187,6 +242,23 @@ export default function DashboardPage() {
     setCurrentDate(d)
   }
 
+  const markHabitDone = async (id: number) => {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const res = await fetch(`/api/habits/${id}/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: today }),
+      })
+      if (res.ok) {
+        setHabits((prev) => prev.map((h) => (h.id === id ? { ...h, completedToday: true } : h)))
+        fetchAnalytics()
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
   const markTodoDone = async (id: number) => {
     try {
       const res = await fetch(`/api/todos/${id}`, {
@@ -195,8 +267,23 @@ export default function DashboardPage() {
         body: JSON.stringify({ completed: true }),
       })
       if (res.ok) {
-        setCriticalTasks((prev) => prev.map((t) => (t.id === `todo-${id}` ? { ...t, completed: true } : t)))
-        fetchUrgency(selectedDateStr)
+        setTodos((prev) => prev.filter((t) => t.id !== id))
+        fetchAnalytics()
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const markChecklistItemDone = async (checklistId: number, itemId: number) => {
+    try {
+      const res = await fetch(`/api/checklists/${checklistId}/items/${itemId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: true }),
+      })
+      if (res.ok) {
+        setChecklists((prev) => prev.filter((i) => i.id !== itemId))
         fetchAnalytics()
       }
     } catch (err) {
@@ -212,26 +299,8 @@ export default function DashboardPage() {
         body: JSON.stringify({ completed: true }),
       })
       if (res.ok) {
-        setCriticalTasks((prev) => prev.map((t) => (t.id === `reminder-${id}` ? { ...t, completed: true } : t)))
-        fetchUrgency(selectedDateStr)
-        fetchAnalytics()
-      }
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const markHabitDone = async (id: number) => {
-    try {
-      const today = new Date().toISOString().split('T')[0]
-      const res = await fetch(`/api/habits/${id}/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: today }),
-      })
-      if (res.ok) {
-        setCriticalHabits((prev) => prev.map((h) => (h.id === id ? { ...h, completedToday: true } : h)))
-        fetchUrgency(selectedDateStr)
+        setUpcomingReminders((prev) => prev.filter((r) => r.id !== id && !String(r.id).startsWith(`${id}-`)))
+        fetchCalendar()
         fetchAnalytics()
       }
     } catch (err) {
@@ -256,7 +325,6 @@ export default function DashboardPage() {
       const isSelected = selectedDateStr === dateStr
       const isToday = new Date().toISOString().split('T')[0] === dateStr
 
-      // Workload intensity (0-3)
       let intensity = 0
       if (wl) {
         if (wl.score > 8) intensity = 3
@@ -274,7 +342,6 @@ export default function DashboardPage() {
               : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'
           } ${isToday ? 'ring-2 ring-primary/20' : ''}`}
         >
-          {/* Workload intensity background */}
           {intensity > 0 && (
             <div
               className="absolute inset-0 opacity-10 pointer-events-none"
@@ -345,116 +412,128 @@ export default function DashboardPage() {
             <div>
               <p className="text-sm font-medium text-red-800 dark:text-red-300">This day is very loaded</p>
               <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
-                {selectedWorkload.score} items scheduled ({selectedWorkload.tasks} tasks, {selectedWorkload.habits} habits, {selectedWorkload.reminders} reminders). Consider rescheduling some items.
+                {selectedWorkload.score} items scheduled. Consider rescheduling some items.
               </p>
             </div>
           </div>
         )}
 
-        {/* ═══ SECTION 1: URGENCY ═══ */}
+        {/* ═══ SECTION 1: HABIT TRACKERS ═══ */}
         <section>
-          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">
-            Urgency — {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Critical Tasks */}
+          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Habit Trackers</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {habits.length === 0 && (
+              <div className="col-span-full dashboard-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-8 text-center">
+                <p className="text-sm text-slate-400">No active habits. Start building one!</p>
+              </div>
+            )}
+            {habits.map((habit) => (
+              <div
+                key={habit.id}
+                className={`dashboard-card rounded-2xl border p-4 transition-all ${
+                  habit.completedToday
+                    ? 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/30'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: habit.color }} />
+                    <h4 className={`font-semibold text-sm truncate ${habit.completedToday ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-900 dark:text-white'}`}>
+                      {habit.title}
+                    </h4>
+                  </div>
+                  {habit.completedToday && (
+                    <span className="material-symbols-outlined text-emerald-500 text-lg">check_circle</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-slate-500">
+                      {habit.streak > 0 ? `${habit.streak}-day streak` : 'Start a streak'}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      {habit.goalType === 'Daily' ? 'Daily goal' : `${habit.goalValue} per ${habit.goalType.toLowerCase()}`}
+                    </p>
+                  </div>
+                  {!habit.completedToday && (
+                    <button
+                      onClick={() => markHabitDone(habit.id)}
+                      className="text-xs px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium"
+                    >
+                      Realizado
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ═══ SECTION 2: CHECKLISTS & TODOS ═══ */}
+        <section>
+          <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Checklists & ToDos</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Checklists */}
+            <div className="dashboard-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="card-title font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  Checklists
+                </h4>
+                <span className="text-xs text-slate-400">{checklists.length} pending</span>
+              </div>
+              <div className="space-y-2 max-h-[320px] overflow-y-auto">
+                {checklists.length === 0 && (
+                  <p className="text-sm text-slate-400 py-4 text-center">No pending checklist items</p>
+                )}
+                {checklists.map((item) => (
+                  <div key={`cl-${item.id}`} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.checklistColor }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{item.title}</p>
+                      <p className="text-xs text-slate-500">{item.checklistTitle} · {item.priority}</p>
+                    </div>
+                    <button
+                      onClick={() => markChecklistItemDone(item.checklistId, item.id)}
+                      className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 whitespace-nowrap"
+                    >
+                      Done
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ToDos */}
             <div className="dashboard-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="card-title font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-red-500" />
-                  Critical Tasks
+                  ToDos
                 </h4>
-                <span className="text-xs text-slate-400">{criticalTasks.filter((t) => !t.completed).length} pending</span>
+                <span className="text-xs text-slate-400">{todos.length} pending</span>
               </div>
-              <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                {criticalTasks.length === 0 && (
-                  <p className="text-sm text-slate-400 py-4 text-center">No critical tasks for this day</p>
+              <div className="space-y-2 max-h-[320px] overflow-y-auto">
+                {todos.length === 0 && (
+                  <p className="text-sm text-slate-400 py-4 text-center">No pending ToDos</p>
                 )}
-                {criticalTasks.map((task) => (
-                  <div key={task.id} className={`flex items-center gap-3 p-3 rounded-xl border ${task.completed ? 'opacity-50 border-slate-100 dark:border-slate-700' : 'border-slate-200 dark:border-slate-700'}`}>
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: MODULE_COLORS[task.module] }} />
+                {todos.map((todo) => (
+                  <div key={`td-${todo.id}`} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0 bg-red-500" />
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${task.completed ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}`}>{task.title}</p>
-                      <p className="text-xs text-slate-500">{task.dueDate} · {task.priority}</p>
-                    </div>
-                    {!task.completed && (
-                      <button
-                        onClick={() => (task.module === 'todo' ? markTodoDone(parseInt(task.id.replace('todo-', ''))) : markReminderDone(parseInt(task.id.replace('reminder-', ''))))}
-                        className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 whitespace-nowrap"
-                      >
-                        Mark Done
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Critical Habits */}
-            <div className="dashboard-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="card-title font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Critical Habits
-                </h4>
-                <span className="text-xs text-slate-400">{criticalHabits.filter((h) => !h.completedToday).length} pending</span>
-              </div>
-              <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                {criticalHabits.length === 0 && (
-                  <p className="text-sm text-slate-400 py-4 text-center">No habits scheduled</p>
-                )}
-                {criticalHabits.map((habit) => (
-                  <div key={habit.id} className={`flex items-center gap-3 p-3 rounded-xl border ${habit.completedToday ? 'opacity-50 border-slate-100 dark:border-slate-700' : 'border-slate-200 dark:border-slate-700'}`}>
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: habit.color }} />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${habit.completedToday ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}`}>{habit.title}</p>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{todo.title}</p>
                       <p className="text-xs text-slate-500">
-                        {habit.streak > 0 ? `${habit.streak}-day streak` : 'Start a streak'}
-                        {habit.streak > 0 && !habit.completedToday && ' · at risk'}
+                        {todo.dueDate && `${todo.dueDate} · `}{todo.priority}
+                        {todo.category?.name && ` · ${todo.category.name}`}
                       </p>
                     </div>
-                    {!habit.completedToday && (
-                      <button
-                        onClick={() => markHabitDone(habit.id)}
-                        className="text-xs px-2 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-500/20 whitespace-nowrap"
-                      >
-                        Realizado
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Upcoming Milestones */}
-            <div className="dashboard-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="card-title font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-violet-500" />
-                  Milestones
-                </h4>
-                <span className="text-xs text-slate-400">Next 7 days</span>
-              </div>
-              <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                {milestones.length === 0 && (
-                  <p className="text-sm text-slate-400 py-4 text-center">No upcoming milestones</p>
-                )}
-                {milestones.map((m) => (
-                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: m.color }} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{m.title}</p>
-                      <p className="text-xs text-slate-500">{m.date}</p>
-                    </div>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      m.daysRemaining <= 2
-                        ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                        : m.daysRemaining <= 5
-                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                        : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
-                    }`}>
-                      {m.daysRemaining === 0 ? 'Today' : `${m.daysRemaining}d`}
-                    </span>
+                    <button
+                      onClick={() => markTodoDone(todo.id)}
+                      className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 whitespace-nowrap"
+                    >
+                      Done
+                    </button>
                   </div>
                 ))}
               </div>
@@ -462,7 +541,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* ═══ SECTION 2: PLANNING (Calendar) ═══ */}
+        {/* ═══ SECTION 3: CALENDAR + UPCOMING REMINDERS ═══ */}
         <section>
           <h3 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Planning</h3>
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -474,7 +553,7 @@ export default function DashboardPage() {
                   {Object.entries(MODULE_COLORS).map(([mod, color]) => (
                     <div key={mod} className="flex items-center gap-1.5">
                       <span className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
-                      <span className="text-xs text-slate-500 dark:text-slate-400">{MODULE_LABELS[mod]}</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 capitalize">{mod}</span>
                     </div>
                   ))}
                 </div>
@@ -491,52 +570,54 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Selected day summary */}
-            <div className="space-y-4">
-              <div className="dashboard-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-                <h4 className="card-title font-semibold text-slate-900 dark:text-white mb-3">
-                  {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            {/* Upcoming Reminders */}
+            <div className="dashboard-card bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="card-title font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  Upcoming Reminders
                 </h4>
-                {selectedWorkload && (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-500">Workload</span>
-                      <span className={`text-sm font-medium ${selectedWorkload.overloaded ? 'text-red-500' : 'text-slate-900 dark:text-white'}`}>{selectedWorkload.score}</span>
+                <span className="text-xs text-slate-400">Next 14 days</span>
+              </div>
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {upcomingReminders.length === 0 && (
+                  <p className="text-sm text-slate-400 py-4 text-center">No upcoming reminders</p>
+                )}
+                {upcomingReminders.map((r) => (
+                  <div key={String(r.id)} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0 bg-blue-500" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{r.title}</p>
+                      <p className="text-xs text-slate-500">{r.dueDate} · {r.priority}</p>
                     </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
-                      <div
-                        className="h-2 rounded-full transition-all"
-                        style={{
-                          width: `${Math.min((selectedWorkload.score / 8) * 100, 100)}%`,
-                          backgroundColor: selectedWorkload.overloaded ? '#ef4444' : selectedWorkload.score > 5 ? '#f59e0b' : '#10b981',
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        r.daysUntil <= 1
+                          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          : r.daysUntil <= 3
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                          : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                      }`}>
+                        {r.daysUntil === 0 ? 'Today' : `${r.daysUntil}d`}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const numericId = typeof r.id === 'string' ? parseInt(r.id.split('-')[0], 10) : r.id
+                          markReminderDone(numericId)
                         }}
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2">
-                        <p className="text-lg font-semibold text-slate-900 dark:text-white">{selectedWorkload.tasks}</p>
-                        <p className="text-[10px] text-slate-500 uppercase">Tasks</p>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2">
-                        <p className="text-lg font-semibold text-slate-900 dark:text-white">{selectedWorkload.habits}</p>
-                        <p className="text-[10px] text-slate-500 uppercase">Habits</p>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2">
-                        <p className="text-lg font-semibold text-slate-900 dark:text-white">{selectedWorkload.reminders}</p>
-                        <p className="text-[10px] text-slate-500 uppercase">Reminders</p>
-                      </div>
+                        className="text-xs px-2 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-500/20 whitespace-nowrap"
+                      >
+                        Done
+                      </button>
                     </div>
                   </div>
-                )}
-                {!selectedWorkload && (
-                  <p className="text-sm text-slate-400 py-4 text-center">No workload data</p>
-                )}
+                ))}
               </div>
             </div>
           </div>
         </section>
 
-        {/* ═══ SECTION 3: ANALYTICS ═══ */}
+        {/* ═══ SECTION 4: ANALYTICS ═══ */}
         <section>
           <button
             onClick={() => setAnalyticsCollapsed((p) => !p)}
