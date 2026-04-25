@@ -7,6 +7,11 @@ export interface Reminder {
   dueDate: string
   completed: boolean
   priority: ReminderPriority
+  sourceModule?: string | null
+  sourceId?: number | null
+  isPaused: boolean
+  lifecycleStartDate?: string | null
+  lifecycleEndDate?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -16,4 +21,8 @@ export interface ReminderFormData {
   description?: string | null
   dueDate: string
   priority?: ReminderPriority
+  sourceModule?: string | null
+  sourceId?: number | null
+  lifecycleStartDate?: string | null
+  lifecycleEndDate?: string | null
 }
