@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import AppLayout from '@/components/AppLayout'
-import { Reminder, ReminderPriority, ReminderFormData } from '@/types/reminder'
+import { Reminder, ReminderPriority } from '@/types/reminder'
 
 const priorityConfig: Record<ReminderPriority, { icon: string; class: string; bg: string }> = {
   high: { icon: 'arrow_upward', class: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
@@ -27,11 +27,38 @@ export default function RemindersPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Reminder | null>(null)
+  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending')
+  const [conflictWarning, setConflictWarning] = useState<{ date: string; conflicts: any[] } | null>(null)
+
+  // Basic fields
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState<ReminderPriority>('normal')
-  const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending')
+
+  // Advanced fields
+  const [sourceModule, setSourceModule] = useState('')
+  const [sourceId, setSourceId] = useState('')
+  const [lifecycleStart, setLifecycleStart] = useState('')
+  const [lifecycleEnd, setLifecycleEnd] = useState('')
+
+  // Recurrence
+  const [frequency, setFrequency] = useState<'once' | 'daily' | 'weekly' | 'monthly' | 'annual'>('once')
+  const [interval, setInterval] = useState(1)
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([])
+  const [dayOfMonth, setDayOfMonth] = useState('')
+  const [monthOfYear, setMonthOfYear] = useState('')
+  const [recurrenceEnd, setRecurrenceEnd] = useState('')
+
+  // Exceptions
+  const [exceptions, setExceptions] = useState<{ date: string; reason: string }[]>([])
+  const [newExceptionDate, setNewExceptionDate] = useState('')
+  const [newExceptionReason, setNewExceptionReason] = useState('')
+
+  // Blockers
+  const [blockers, setBlockers] = useState<{ blockerModule: string; blockerId: string }[]>([])
+  const [newBlockerModule, setNewBlockerModule] = useState('')
+  const [newBlockerId, setNewBlockerId] = useState('')
 
   const fetchReminders = useCallback(async () => {
     try {
@@ -49,38 +76,133 @@ export default function RemindersPage() {
     return res.json()
   }
 
-  const openNew = () => {
-    setEditing(null); setTitle(''); setDescription(''); setDueDate(''); setPriority('normal'); setShowForm(true)
+  const resetForm = () => {
+    setTitle(''); setDescription(''); setDueDate(''); setPriority('normal')
+    setSourceModule(''); setSourceId(''); setLifecycleStart(''); setLifecycleEnd('')
+    setFrequency('once'); setInterval(1); setDaysOfWeek([]); setDayOfMonth(''); setMonthOfYear(''); setRecurrenceEnd('')
+    setExceptions([]); setNewExceptionDate(''); setNewExceptionReason('')
+    setBlockers([]); setNewBlockerModule(''); setNewBlockerId('')
+    setConflictWarning(null)
   }
 
-  const openEdit = (r: Reminder) => {
-    setEditing(r); setTitle(r.title); setDescription(r.description || '')
+  const openNew = () => { resetForm(); setEditing(null); setShowForm(true) }
+
+  const openEdit = async (r: Reminder) => {
+    setEditing(r)
+    setTitle(r.title)
+    setDescription(r.description || '')
     setDueDate(new Date(r.dueDate).toISOString().split('T')[0])
-    setPriority(r.priority); setShowForm(true)
+    setPriority(r.priority as ReminderPriority)
+    setSourceModule(r.sourceModule || '')
+    setSourceId(r.sourceId?.toString() || '')
+    setLifecycleStart(r.lifecycleStartDate ? new Date(r.lifecycleStartDate).toISOString().split('T')[0] : '')
+    setLifecycleEnd(r.lifecycleEndDate ? new Date(r.lifecycleEndDate).toISOString().split('T')[0] : '')
+
+    // Fetch full detail for recurrence/exceptions/blockers
+    const detail = await fetch(`/api/reminders/${r.id}/detail`).then(res => res.ok ? res.json() : null)
+    if (detail) {
+      if (detail.recurrenceRule) {
+        setFrequency(detail.recurrenceRule.frequency as any)
+        setInterval(detail.recurrenceRule.interval)
+        setDaysOfWeek(detail.recurrenceRule.daysOfWeek || [])
+        setDayOfMonth(detail.recurrenceRule.dayOfMonth?.toString() || '')
+        setMonthOfYear(detail.recurrenceRule.monthOfYear?.toString() || '')
+        setRecurrenceEnd(detail.recurrenceRule.endDate ? new Date(detail.recurrenceRule.endDate).toISOString().split('T')[0] : '')
+      }
+      setExceptions(detail.exceptions.map((e: any) => ({ date: new Date(e.exceptionDate).toISOString().split('T')[0], reason: e.reason || '' })))
+      setBlockers(detail.blockers.map((b: any) => ({ blockerModule: b.blockerModule, blockerId: b.blockerId.toString() })))
+    }
+    setShowForm(true)
+  }
+
+  const checkConflicts = async () => {
+    if (!dueDate) return
+    try {
+      const res = await fetch('/api/reminders/conflict-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: dueDate }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.hasConflict) setConflictWarning(data)
+        else setConflictWarning(null)
+      }
+    } catch (err) { console.error(err) }
   }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!title.trim() || !dueDate) return
-    const data: ReminderFormData = { title: title.trim(), description: description.trim() || null, dueDate, priority }
-    if (editing) {
-      const updated = await api(`/api/reminders/${editing.id}`, 'PUT', data)
-      setReminders(prev => prev.map(r => r.id === updated.id ? updated : r))
-    } else {
-      const created = await api('/api/reminders', 'POST', data)
-      setReminders(prev => [created, ...prev])
+
+    const data: any = {
+      title: title.trim(),
+      description: description.trim() || null,
+      dueDate,
+      priority,
+      sourceModule: sourceModule || null,
+      sourceId: sourceId ? parseInt(sourceId) : null,
+      lifecycleStartDate: lifecycleStart || null,
+      lifecycleEndDate: lifecycleEnd || null,
+      recurrence: frequency !== 'once' ? {
+        frequency,
+        interval,
+        daysOfWeek,
+        dayOfMonth: dayOfMonth ? parseInt(dayOfMonth) : null,
+        monthOfYear: monthOfYear ? parseInt(monthOfYear) : null,
+        startDate: dueDate,
+        endDate: recurrenceEnd || null,
+      } : undefined,
+      blockers: blockers.map(b => ({ blockerModule: b.blockerModule, blockerId: parseInt(b.blockerId) })),
     }
+
+    if (editing) {
+      await api(`/api/reminders/${editing.id}`, 'PUT', data)
+      // Update exceptions
+      for (const exc of exceptions) {
+        await api(`/api/reminders/${editing.id}/exceptions`, 'POST', { exceptionDate: exc.date, reason: exc.reason })
+      }
+    } else {
+      await api('/api/reminders', 'POST', data)
+    }
+
     setShowForm(false)
+    resetForm()
+    fetchReminders()
   }
 
   const handleToggle = async (r: Reminder) => {
-    const updated = await api(`/api/reminders/${r.id}`, 'PUT', { completed: !r.completed })
-    setReminders(prev => prev.map(x => x.id === updated.id ? updated : x))
+    await api(`/api/reminders/${r.id}`, 'PUT', { completed: !r.completed })
+    setReminders(prev => prev.map(x => x.id === r.id ? { ...x, completed: !x.completed } : x))
   }
 
   const handleDelete = async (id: number) => {
     await api(`/api/reminders/${id}`, 'DELETE')
     setReminders(prev => prev.filter(r => r.id !== id))
+  }
+
+  const toggleDayOfWeek = (day: number) => {
+    setDaysOfWeek(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day])
+  }
+
+  const addException = () => {
+    if (!newExceptionDate) return
+    setExceptions(prev => [...prev, { date: newExceptionDate, reason: newExceptionReason }])
+    setNewExceptionDate(''); setNewExceptionReason('')
+  }
+
+  const removeException = (idx: number) => {
+    setExceptions(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const addBlocker = () => {
+    if (!newBlockerModule || !newBlockerId) return
+    setBlockers(prev => [...prev, { blockerModule: newBlockerModule, blockerId: newBlockerId }])
+    setNewBlockerModule(''); setNewBlockerId('')
+  }
+
+  const removeBlocker = (idx: number) => {
+    setBlockers(prev => prev.filter((_, i) => i !== idx))
   }
 
   const filtered = reminders.filter(r => {
@@ -128,7 +250,7 @@ export default function RemindersPage() {
         ) : (
           <div className="space-y-2">
             {filtered.map(r => {
-              const prio = priorityConfig[r.priority] || priorityConfig.normal
+              const prio = priorityConfig[r.priority as ReminderPriority] || priorityConfig.normal
               const due = formatDate(r.dueDate)
               return (
                 <div key={r.id} className={`reminder-card p-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 group ${r.completed ? 'reminder-card-completed opacity-60' : ''} ${prio.bg}`}>
@@ -141,6 +263,9 @@ export default function RemindersPage() {
                       <div className="flex items-center gap-2">
                         <span className={`font-medium ${r.completed ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}`}>{r.title}</span>
                         <span className={`material-symbols-outlined text-xs ${prio.class}`}>{prio.icon}</span>
+                        {r.sourceModule && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 capitalize">{r.sourceModule}</span>
+                        )}
                       </div>
                       {r.description && <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{r.description}</p>}
                       <p className={`text-xs mt-0.5 ${due.class}`}>
@@ -167,10 +292,11 @@ export default function RemindersPage() {
       {/* Form modal */}
       {showForm && (
         <div className="delete-modal-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowForm(false)}>
-          <div className="reminder-modal bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-xl" onClick={e => e.stopPropagation()}>
+          <div className="reminder-modal bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{editing ? 'Edit Reminder' : 'New Reminder'}</h3>
               <form onSubmit={handleSave} className="space-y-4">
+                {/* Basic */}
                 <div>
                   <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Title</label>
                   <input type="text" value={title} onChange={e => setTitle(e.target.value)} autoFocus required
@@ -184,7 +310,7 @@ export default function RemindersPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Due Date</label>
-                    <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} required
+                    <input type="date" value={dueDate} onChange={e => { setDueDate(e.target.value); setConflictWarning(null) }} onBlur={checkConflicts} required
                       className="form-input w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" />
                   </div>
                   <div>
@@ -197,8 +323,181 @@ export default function RemindersPage() {
                     </select>
                   </div>
                 </div>
+
+                {/* Conflict warning */}
+                {conflictWarning && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-500">warning</span>
+                      <span className="text-sm font-medium text-amber-700 dark:text-amber-400">{conflictWarning.conflicts.length} conflicts on {conflictWarning.date}</span>
+                    </div>
+                    <ul className="mt-1 ml-6 text-xs text-amber-600 dark:text-amber-400 list-disc">
+                      {conflictWarning.conflicts.slice(0, 3).map((c, i) => (
+                        <li key={i}>{c.title} ({c.module})</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Source Linking */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Source Module</label>
+                    <select value={sourceModule} onChange={e => setSourceModule(e.target.value)}
+                      className="form-select w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                      <option value="">None</option>
+                      <option value="habit">Habit</option>
+                      <option value="checklist">Checklist</option>
+                      <option value="todo">ToDo</option>
+                      <option value="milestone">Milestone</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Source ID</label>
+                    <input type="number" value={sourceId} onChange={e => setSourceId(e.target.value)}
+                      className="form-input w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+
+                {/* Lifecycle */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Lifecycle Start</label>
+                    <input type="date" value={lifecycleStart} onChange={e => setLifecycleStart(e.target.value)}
+                      className="form-input w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div>
+                    <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Lifecycle End</label>
+                    <input type="date" value={lifecycleEnd} onChange={e => setLifecycleEnd(e.target.value)}
+                      className="form-input w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+
+                {/* Recurrence */}
+                <div>
+                  <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Recurrence</label>
+                  <select value={frequency} onChange={e => setFrequency(e.target.value as any)}
+                    className="form-select w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="once">Once</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="annual">Annual</option>
+                  </select>
+                </div>
+
+                {frequency !== 'once' && (
+                  <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Interval</label>
+                        <input type="number" min={1} value={interval} onChange={e => setInterval(parseInt(e.target.value) || 1)}
+                          className="form-input w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                      </div>
+                      <div>
+                        <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">End Date</label>
+                        <input type="date" value={recurrenceEnd} onChange={e => setRecurrenceEnd(e.target.value)}
+                          className="form-input w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                      </div>
+                    </div>
+
+                    {frequency === 'weekly' && (
+                      <div>
+                        <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Days of Week</label>
+                        <div className="flex gap-1">
+                          {['S','M','T','W','T','F','S'].map((d, i) => (
+                            <button key={i} type="button" onClick={() => toggleDayOfWeek(i)}
+                              className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${daysOfWeek.includes(i) ? 'bg-primary text-white' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'}`}>
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {frequency === 'monthly' && (
+                      <div>
+                        <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Day of Month</label>
+                        <input type="number" min={1} max={31} value={dayOfMonth} onChange={e => setDayOfMonth(e.target.value)}
+                          className="form-input w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                      </div>
+                    )}
+
+                    {frequency === 'annual' && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Month</label>
+                          <input type="number" min={1} max={12} value={monthOfYear} onChange={e => setMonthOfYear(e.target.value)}
+                            className="form-input w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                        </div>
+                        <div>
+                          <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Day</label>
+                          <input type="number" min={1} max={31} value={dayOfMonth} onChange={e => setDayOfMonth(e.target.value)}
+                            className="form-input w-full px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Exceptions */}
+                <div>
+                  <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Exceptions</label>
+                  <div className="flex gap-2 mb-2">
+                    <input type="date" value={newExceptionDate} onChange={e => setNewExceptionDate(e.target.value)}
+                      className="form-input flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm" />
+                    <input type="text" value={newExceptionReason} onChange={e => setNewExceptionReason(e.target.value)} placeholder="Reason"
+                      className="form-input flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm" />
+                    <button type="button" onClick={addException}
+                      className="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600">Add</button>
+                  </div>
+                  {exceptions.length > 0 && (
+                    <div className="space-y-1">
+                      {exceptions.map((exc, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm px-3 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                          <span className="text-slate-600 dark:text-slate-400">{exc.date} {exc.reason && `— ${exc.reason}`}</span>
+                          <button type="button" onClick={() => removeException(i)} className="text-slate-400 hover:text-red-500">
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Blockers */}
+                <div>
+                  <label className="rf-label block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Blockers</label>
+                  <div className="flex gap-2 mb-2">
+                    <select value={newBlockerModule} onChange={e => setNewBlockerModule(e.target.value)}
+                      className="form-select px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm">
+                      <option value="">Module</option>
+                      <option value="habit">Habit</option>
+                      <option value="checklist">Checklist</option>
+                      <option value="todo">ToDo</option>
+                      <option value="reminder">Reminder</option>
+                    </select>
+                    <input type="number" value={newBlockerId} onChange={e => setNewBlockerId(e.target.value)} placeholder="ID"
+                      className="form-input flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm" />
+                    <button type="button" onClick={addBlocker}
+                      className="px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600">Add</button>
+                  </div>
+                  {blockers.length > 0 && (
+                    <div className="space-y-1">
+                      {blockers.map((b, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm px-3 py-1.5 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                          <span className="text-slate-600 dark:text-slate-400 capitalize">{b.blockerModule} #{b.blockerId}</span>
+                          <button type="button" onClick={() => removeBlocker(i)} className="text-slate-400 hover:text-red-500">
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={() => setShowForm(false)}
+                  <button type="button" onClick={() => { setShowForm(false); resetForm() }}
                     className="btn-outline flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium">
                     Cancel
                   </button>

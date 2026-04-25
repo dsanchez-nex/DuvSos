@@ -49,6 +49,7 @@ model User {
   objectives          Objective[]
   userProgression     UserProgression?
   energyLogs          EnergyLog[]
+  milestones          Milestone[]
 }
 
 model Category {
@@ -272,11 +273,132 @@ model Reminder {
   dueDate     DateTime
   completed   Boolean  @default(false)
   priority    String   @default("normal") // low, normal, high
+
+  // Contextual linking
+  sourceModule String? // 'habit', 'checklist', 'todo', 'milestone'
+  sourceId     Int?
+
+  // Lifecycle
+  isPaused           Boolean   @default(false)
+  lifecycleStartDate DateTime?
+  lifecycleEndDate   DateTime?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      Int?
   user        User?    @relation(fields: [userId], references: [id])
 
+  recurrenceRule ReminderRecurrenceRule?
+  exceptions     ReminderException[]
+  blockers       ReminderBlocker[]
+  metrics        ReminderMetrics[]
+
   @@index([userId])
   @@index([userId, completed, dueDate])
+  @@index([sourceModule, sourceId])
+  @@index([lifecycleStartDate])
+  @@index([lifecycleEndDate])
+}
+
+model ReminderRecurrenceRule {
+  id           Int      @id @default(autoincrement())
+  reminderId   Int      @unique
+  reminder     Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  frequency    String   @default("once") // once, daily, weekly, monthly, annual
+  interval     Int      @default(1)      // every N frequencies
+  daysOfWeek   Int[]    // for weekly: 0=Sun, 1=Mon, ...
+  dayOfMonth   Int?     // for monthly
+  monthOfYear  Int?     // for annual
+  startDate    DateTime @default(now())
+  endDate      DateTime?
+
+  createdAt    DateTime @default(now())
+}
+
+model ReminderException {
+  id           Int      @id @default(autoincrement())
+  reminderId   Int
+  reminder     Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  exceptionDate DateTime
+  reason        String?
+
+  createdAt     DateTime @default(now())
+
+  @@unique([reminderId, exceptionDate])
+  @@index([reminderId])
+}
+
+model ReminderBlocker {
+  id           Int      @id @default(autoincrement())
+  reminderId   Int
+  reminder     Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  blockerModule String // 'habit', 'checklist', 'todo', 'reminder'
+  blockerId     Int
+
+  createdAt     DateTime @default(now())
+
+  @@unique([reminderId, blockerModule, blockerId])
+  @@index([reminderId])
+  @@index([blockerModule, blockerId])
+}
+
+model ReminderMetrics {
+  id           Int      @id @default(autoincrement())
+  reminderId   Int
+  reminder     Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  viewedAt     DateTime @default(now())
+  actionTaken  String?  // 'viewed', 'navigated', 'completed', 'edited', 'deleted'
+
+  @@index([reminderId])
+  @@index([reminderId, viewedAt])
+}
+
+model Milestone {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  date        DateTime
+  color       String   @default("#f59e0b")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id])
+
+  items       MilestoneItem[]
+
+  @@index([userId])
+  @@index([userId, date])
+}
+
+model MilestoneItem {
+  id           Int       @id @default(autoincrement())
+  milestoneId  Int
+  milestone    Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  itemModule   String    // 'habit', 'checklist', 'todo', 'reminder'
+  itemId       Int
+
+  createdAt    DateTime  @default(now())
+
+  @@unique([milestoneId, itemModule, itemId])
+  @@index([milestoneId])
+  @@index([itemModule, itemId])
+}
+
+model PriorityEscalationRule {
+  id              Int      @id @default(autoincrement())
+  sourceModule    String   // 'habit', 'checklist', 'todo', 'reminder', 'milestone'
+  sourceId        Int
+
+  thresholdHours  Int      @default(48) // hours before deadline to trigger
+  escalationLevel String   @default("high") // target priority level
+
+  createdAt       DateTime @default(now())
+
+  @@unique([sourceModule, sourceId])
+  @@index([sourceModule, sourceId])
 }
