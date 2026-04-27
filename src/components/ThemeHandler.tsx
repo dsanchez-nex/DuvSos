@@ -10,14 +10,12 @@ export default function ThemeHandler() {
             const storedTheme = localStorage.getItem('app-theme');
             const theme = storedTheme || 'system';
 
-            // Apply theme based on preference or system
             let isDark: boolean;
             if (theme === 'dark') {
                 isDark = true;
             } else if (theme === 'light') {
                 isDark = false;
             } else {
-                // system
                 isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             }
 
@@ -26,19 +24,21 @@ export default function ThemeHandler() {
             } else {
                 root.classList.remove('dark');
             }
+
+            // Apply visual theme
+            const storedVisual = localStorage.getItem('app-visual-theme') || 'classic';
+            root.setAttribute('data-visual-theme', storedVisual);
         };
 
         applyTheme();
 
-        // Listen for localStorage changes
         const handleStorage = (e: StorageEvent) => {
-            if (e.key === 'app-theme') {
+            if (e.key === 'app-theme' || e.key === 'app-visual-theme') {
                 applyTheme();
             }
         };
         window.addEventListener('storage', handleStorage);
 
-        // Listen for system theme changes if set to system
         const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
         const handleSystemChange = () => {
             const storedTheme = localStorage.getItem('app-theme') || 'system';

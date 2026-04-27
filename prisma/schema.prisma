@@ -9,6 +9,23 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Enums ───────────────────────────────────────────────────────────────
+
+enum HabitState {
+  Active
+  Paused
+  Archived
+}
+
+enum GoalType {
+  Daily
+  Weekly
+  Monthly
+  Ratio
+}
+
+// ─── Core Models ─────────────────────────────────────────────────────────
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -17,39 +34,133 @@ model User {
   image     String?
   tagline   String?  @default("Productivity Enthusiast")
   theme     String   @default("system")
+  visualTheme String @default("classic")
   checklistAlertDays Int @default(3)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
   habits              Habit[]
   todos               Todo[]
+  todoCategories      TodoCategory[]
   checklists          Checklist[]
   checklistCategories ChecklistCategory[]
   reminders           Reminder[]
+  categories          Category[]
+  objectives          Objective[]
+  userProgression     UserProgression?
+  energyLogs          EnergyLog[]
+  milestones          Milestone[]
 }
 
-model Habit {
-  id          Int          @id @default(autoincrement())
-  title       String
-  description String?
-  color       String       @default("#3b82f6")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  userId      Int?
-  user        User?        @relation(fields: [userId], references: [id])
-  completions Completion[]
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  color     String   @default("#3b82f6")
+  icon      String   @default("folder")
+  createdAt DateTime @default(now())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id])
+  habits    Habit[]
 
   @@index([userId])
 }
 
-model Completion {
-  id      Int      @id @default(autoincrement())
-  habitId Int
-  date    DateTime @default(now())
-  habit   Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+model Habit {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  color       String    @default("#3b82f6")
+
+  // Lifecycle & Planning
+  state       HabitState @default(Active)
+  isPermanent Boolean    @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+
+  // Goal Configuration
+  goalType    GoalType   @default(Daily)
+  goalValue   Int        @default(1)
+
+  // Relations
+  userId      Int?
+  user        User?      @relation(fields: [userId], references: [id])
+  categoryId  Int?
+  category    Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  objectiveId Int?
+  objective   Objective? @relation(fields: [objectiveId], references: [id], onDelete: SetNull)
+
+  completions HabitCompletion[]
+  blockers    HabitBlocker[] @relation("BlockedHabit")
+  blocking    HabitBlocker[] @relation("BlockerHabit")
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([state])
+  @@index([endDate])
+  @@index([categoryId])
+  @@index([objectiveId])
+}
+
+model HabitCompletion {
+  id          Int      @id @default(autoincrement())
+  habitId     Int
+  date        DateTime // normalized to midnight (UTC)
+  completedAt DateTime @default(now())
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
 
   @@unique([habitId, date])
   @@index([habitId])
+  @@index([habitId, date])
 }
+
+model HabitBlocker {
+  id             Int   @id @default(autoincrement())
+  habitId        Int
+  blockerHabitId Int
+  habit          Habit @relation("BlockedHabit", fields: [habitId], references: [id], onDelete: Cascade)
+  blockerHabit   Habit @relation("BlockerHabit", fields: [blockerHabitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, blockerHabitId])
+  @@index([habitId])
+  @@index([blockerHabitId])
+}
+
+model UserProgression {
+  id           Int    @id @default(autoincrement())
+  userId       Int    @unique
+  totalXP      Int    @default(0)
+  currentLevel Int    @default(1)
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EnergyLog {
+  id     Int      @id @default(autoincrement())
+  userId Int
+  date   DateTime // normalized to midnight
+  level  Int      // 1–5
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([userId, date])
+}
+
+model Objective {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  color       String   @default("#3b82f6")
+  createdAt   DateTime @default(now())
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id])
+  habits      Habit[]
+
+  @@index([userId])
+}
+
+// ─── Existing Models (unchanged) ─────────────────────────────────────────
 
 model ChecklistCategory {
   id         Int         @id @default(autoincrement())
@@ -71,6 +182,12 @@ model Checklist {
   color       String             @default("#3b82f6")
   startDate   DateTime?
   endDate     DateTime?
+  isTemplate  Boolean            @default(false)
+  version     Int                @default(1)
+  lifecycleState String          @default("Active")
+  templateId  Int?
+  recurrencePattern String?
+  completedAt DateTime?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   userId      Int?
@@ -81,36 +198,72 @@ model Checklist {
 
   @@index([userId])
   @@index([categoryId])
+  @@index([lifecycleState])
 }
 
 model ChecklistItem {
-  id          Int       @id @default(autoincrement())
-  title       String
-  completed   Boolean   @default(false)
-  position    Int       @default(0)
-  notes       String?
-  priority    String    @default("normal") // low, normal, high
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  checklistId Int
-  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  id              Int       @id @default(autoincrement())
+  title           String
+  completed       Boolean   @default(false)
+  position        Int       @default(0)
+  notes           String?
+  priority        String    @default("normal") // low, normal, high
+  parentId        Int?
+  blockedByItemId Int?
+  effortEstimate  Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  checklistId     Int
+  checklist       Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
 
   @@index([checklistId])
   @@index([checklistId, position])
+  @@index([parentId])
+  @@index([blockedByItemId])
 }
 
 model Todo {
-  id         Int      @id @default(autoincrement())
-  title      String
-  completed  Boolean  @default(false)
-  position   Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  userId     Int?
-  user       User?    @relation(fields: [userId], references: [id])
+  id           Int       @id @default(autoincrement())
+  title        String
+  description  String?
+  completed    Boolean   @default(false)
+  priority     String    @default("normal") // low, normal, high
+  dueDate      DateTime?
+  dueTime      String?
+  effortMinutes Int      @default(0)
+  position     Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  userId       Int?
+  user         User?     @relation(fields: [userId], references: [id])
+  parentId     Int?
+  parent       Todo?     @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subTasks     Todo[]    @relation("SubTasks")
+  categoryId   Int?
+  category     TodoCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([userId, completed, position])
+  @@index([parentId])
+  @@index([categoryId])
+}
+
+model TodoCategory {
+  id          Int       @id @default(autoincrement())
+  name        String
+  color       String    @default("#3b82f6")
+  icon        String    @default("folder")
+  description String?
+  parentId    Int?
+  parent      TodoCategory? @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    TodoCategory[] @relation("CategoryTree")
+  createdAt   DateTime  @default(now())
+  userId      Int?
+  user        User?     @relation(fields: [userId], references: [id])
+  todos       Todo[]
+
+  @@index([userId])
+  @@index([parentId])
 }
 
 model Reminder {
@@ -120,11 +273,132 @@ model Reminder {
   dueDate     DateTime
   completed   Boolean  @default(false)
   priority    String   @default("normal") // low, normal, high
+
+  // Contextual linking
+  sourceModule String? // 'habit', 'checklist', 'todo', 'milestone'
+  sourceId     Int?
+
+  // Lifecycle
+  isPaused           Boolean   @default(false)
+  lifecycleStartDate DateTime?
+  lifecycleEndDate   DateTime?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   userId      Int?
   user        User?    @relation(fields: [userId], references: [id])
 
+  recurrenceRule ReminderRecurrenceRule?
+  exceptions     ReminderException[]
+  blockers       ReminderBlocker[]
+  metrics        ReminderMetrics[]
+
   @@index([userId])
   @@index([userId, completed, dueDate])
+  @@index([sourceModule, sourceId])
+  @@index([lifecycleStartDate])
+  @@index([lifecycleEndDate])
+}
+
+model ReminderRecurrenceRule {
+  id           Int      @id @default(autoincrement())
+  reminderId   Int      @unique
+  reminder     Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  frequency    String   @default("once") // once, daily, weekly, monthly, annual
+  interval     Int      @default(1)      // every N frequencies
+  daysOfWeek   Int[]    // for weekly: 0=Sun, 1=Mon, ...
+  dayOfMonth   Int?     // for monthly
+  monthOfYear  Int?     // for annual
+  startDate    DateTime @default(now())
+  endDate      DateTime?
+
+  createdAt    DateTime @default(now())
+}
+
+model ReminderException {
+  id           Int      @id @default(autoincrement())
+  reminderId   Int
+  reminder     Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  exceptionDate DateTime
+  reason        String?
+
+  createdAt     DateTime @default(now())
+
+  @@unique([reminderId, exceptionDate])
+  @@index([reminderId])
+}
+
+model ReminderBlocker {
+  id           Int      @id @default(autoincrement())
+  reminderId   Int
+  reminder     Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  blockerModule String // 'habit', 'checklist', 'todo', 'reminder'
+  blockerId     Int
+
+  createdAt     DateTime @default(now())
+
+  @@unique([reminderId, blockerModule, blockerId])
+  @@index([reminderId])
+  @@index([blockerModule, blockerId])
+}
+
+model ReminderMetrics {
+  id           Int      @id @default(autoincrement())
+  reminderId   Int
+  reminder     Reminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  viewedAt     DateTime @default(now())
+  actionTaken  String?  // 'viewed', 'navigated', 'completed', 'edited', 'deleted'
+
+  @@index([reminderId])
+  @@index([reminderId, viewedAt])
+}
+
+model Milestone {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  date        DateTime
+  color       String   @default("#f59e0b")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id])
+
+  items       MilestoneItem[]
+
+  @@index([userId])
+  @@index([userId, date])
+}
+
+model MilestoneItem {
+  id           Int       @id @default(autoincrement())
+  milestoneId  Int
+  milestone    Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  itemModule   String    // 'habit', 'checklist', 'todo', 'reminder'
+  itemId       Int
+
+  createdAt    DateTime  @default(now())
+
+  @@unique([milestoneId, itemModule, itemId])
+  @@index([milestoneId])
+  @@index([itemModule, itemId])
+}
+
+model PriorityEscalationRule {
+  id              Int      @id @default(autoincrement())
+  sourceModule    String   // 'habit', 'checklist', 'todo', 'reminder', 'milestone'
+  sourceId        Int
+
+  thresholdHours  Int      @default(48) // hours before deadline to trigger
+  escalationLevel String   @default("high") // target priority level
+
+  createdAt       DateTime @default(now())
+
+  @@unique([sourceModule, sourceId])
+  @@index([sourceModule, sourceId])
 }
